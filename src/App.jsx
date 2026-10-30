@@ -30,9 +30,35 @@ function NavItem({ to, icon: Icon, label, isExpanded }) {
   );
 }
 
+// La sesión se guarda en sessionStorage: sobrevive a un refresco de página
+// y se cierra al cerrar la pestaña del navegador
+const CLAVE_SESION = 'smi-usuario'
+
+function leerSesion() {
+  try {
+    return sessionStorage.getItem(CLAVE_SESION)
+  } catch {
+    return null
+  }
+}
+
+function guardarSesion(usuario) {
+  try {
+    if (usuario) sessionStorage.setItem(CLAVE_SESION, usuario)
+    else sessionStorage.removeItem(CLAVE_SESION)
+  } catch {
+    // Almacenamiento bloqueado: la sesión dura solo mientras la página esté abierta
+  }
+}
+
 function App() {
-  const [currentUser, setCurrentUser] = useState(null)
+  const [currentUser, setCurrentUserState] = useState(leerSesion)
   const [isExpanded, setIsExpanded] = useState(true)
+
+  const setCurrentUser = (usuario) => {
+    guardarSesion(usuario)
+    setCurrentUserState(usuario)
+  }
 
   if (!currentUser) {
     return <Login onLogin={(usuario) => setCurrentUser(usuario)} />

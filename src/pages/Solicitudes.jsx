@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ClipboardList, Plus, Trash2, X } from 'lucide-react'
-import { API_URL } from '../api'
+import { pedirJSON } from '../api'
+import EstadoCarga from '../components/EstadoCarga'
 
 const ESTADOS = ['CREADA', 'APROBADA', 'EN_ALISTAMIENTO', 'ALISTADA', 'DESPACHADA', 'CANCELADA']
 
@@ -43,7 +44,8 @@ function BadgeEstado({ estado }) {
 }
 
 export default function Solicitudes({ usuarioActual }) {
-  const [solicitudes, setSolicitudes] = useState([])
+  const [solicitudes, setSolicitudes] = useState(null)
+  const [error, setError] = useState('')
   const [productos, setProductos] = useState([])
   const [filtro, setFiltro] = useState('')
   const [form, setForm] = useState(FORM_VACIO)
@@ -51,25 +53,28 @@ export default function Solicitudes({ usuarioActual }) {
   const [alistador, setAlistador] = useState(ALISTADORES[0])
   const [cantidades, setCantidades] = useState({})
 
-  const cargarSolicitudes = useCallback(() => {
-    fetch(`${API_URL}/api/solicitudes${filtro ? `?estado=${filtro}` : ''}`)
-      .then(res => res.json())
-      .then(data => setSolicitudes(Array.isArray(data) ? data : []))
-  }, [filtro])
+  const cargarSolicitudes = useCallback(() => pedirJSON(`/api/solicitudes${filtro ? `?estado=${filtro}` : ''}`)
+    .then(data => {
+      setSolicitudes(data)
+      setError('')
+    })
+    .catch(err => setError(err.message)), [filtro])
 
   useEffect(() => { cargarSolicitudes() }, [cargarSolicitudes])
 
+  // Solo alimenta el autocompletado de códigos: si falla, el formulario sigue funcionando
   useEffect(() => {
-    fetch(`${API_URL}/api/productos`)
-      .then(res => res.json())
-      .then(data => setProductos(data))
+    pedirJSON('/api/productos').then(setProductos).catch(() => setProductos([]))
   }, [])
 
   const abrirDetalle = async (id) => {
-    const response = await fetch(`${API_URL}/api/solicitudes/${id}`)
-    const data = await response.json()
-    setDetalle(data)
-    setCantidades(Object.fromEntries(data.items.map(item => [item.id, item.cantidad_alistada || item.cantidad_solicitada])))
+    try {
+      const data = await pedirJSON(`/api/solicitudes/${id}`)
+      setDetalle(data)
+      setCantidades(Object.fromEntries(data.items.map(item => [item.id, item.cantidad_alistada || item.cantidad_solicitada])))
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`)
+    }
   }
 
   const actualizarItem = (index, campo, valor) => {
@@ -80,53 +85,41 @@ export default function Solicitudes({ usuarioActual }) {
   const crearSolicitud = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch(`${API_URL}/api/solicitudes`, {
+      const data = await pedirJSON('/api/solicitudes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           ...form,
           creado_por: usuarioActual,
           fecha_requerida: form.fecha_requerida || null,
           items: form.items.map(item => ({ ...item, cantidad_solicitada: parseInt(item.cantidad_solicitada) }))
-        })
+        }
       })
-      const data = await response.json()
-      if (!response.ok) {
-        alert(`❌ Error: ${data.error}`)
-        return
-      }
       alert(`✅ Solicitud ${data.codigo_sbo} creada por ${usuarioActual}`)
       setForm(FORM_VACIO)
       cargarSolicitudes()
-    } catch {
-      alert("❌ Error de conexión con el servidor.")
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`)
     }
   }
 
   const ejecutarAccion = async (accion) => {
-    if (accion === 'cancelar' && !window.confirm(`⚠️ ¿Seguro que quieres cancelar la solicitud ${detalle.codigo_sbo}?`)) return
+    if (accion === 'cancelar' && !window.confirm(`⚠️ ¿Seguro que quieres cancelar la solicitud ${detalle.codigo_sbo}? Se liberará el stock reservado.`)) return
     if (accion === 'despachar' && !window.confirm(`¿Confirmar despacho de ${detalle.codigo_sbo}? Se descontará el stock del inventario.`)) return
 
     try {
-      const response = await fetch(`${API_URL}/api/solicitudes/${detalle.id}/transicion`, {
+      const data = await pedirJSON(`/api/solicitudes/${detalle.id}/transicion`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           accion,
           usuario: usuarioActual,
           alistador: accion === 'iniciar' ? alistador : undefined,
           cantidades: accion === 'finalizar' ? Object.fromEntries(Object.entries(cantidades).map(([id, n]) => [id, parseInt(n)])) : undefined
-        })
+        }
       })
-      const data = await response.json()
-      if (!response.ok) {
-        alert(`❌ Error: ${data.error}`)
-        return
-      }
       setDetalle(data)
       cargarSolicitudes()
-    } catch {
-      alert("❌ Error de conexión con el servidor.")
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`)
     }
   }
 
@@ -136,6 +129,8 @@ export default function Solicitudes({ usuarioActual }) {
         <ClipboardList size={36} color="#E31837" />
         <h1 style={{ margin: 0 }}>Solicitudes SBO</h1>
       </div>
+
+      <EstadoCarga cargando={!solicitudes} error={error} onReintentar={() => { setError(''); cargarSolicitudes() }} />
 
       {/* NUEVA SOLICITUD */}
       <div style={estiloTarjeta}>
@@ -275,7 +270,7 @@ export default function Solicitudes({ usuarioActual }) {
             </tr>
           </thead>
           <tbody>
-            {solicitudes.length === 0 ? (
+            {!solicitudes ? null : solicitudes.length === 0 ? (
               <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No hay solicitudes registradas.</td></tr>
             ) : (
               solicitudes.map(sol => (

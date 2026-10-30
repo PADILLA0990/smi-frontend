@@ -1,16 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { History } from 'lucide-react'
+import { pedirJSON } from '../api'
+import EstadoCarga from '../components/EstadoCarga'
 
 export default function Historial() {
-  const [registros, setRegistros] = useState([])
+  const [registros, setRegistros] = useState(null)
+  const [error, setError] = useState('')
 
-  const cargarHistorial = () => {
-    fetch('https://smi-backend-r3ac.onrender.com/api/historial')
-      .then(res => res.json())
-      .then(data => setRegistros(data))
-  }
+  const cargarHistorial = useCallback(() => pedirJSON('/api/historial')
+    .then(data => {
+      setRegistros(data)
+      setError('')
+    })
+    .catch(err => setError(err.message)), [])
 
-  useEffect(() => { cargarHistorial() }, [])
+  useEffect(() => { cargarHistorial() }, [cargarHistorial])
 
   return (
     <div>
@@ -18,6 +22,8 @@ export default function Historial() {
         <History size={36} color="#E31837" />
         <h1 style={{ margin: 0 }}>Historial de Movimientos </h1>
       </div>
+
+      <EstadoCarga cargando={!registros} error={error} onReintentar={() => { setError(''); cargarHistorial() }} />
 
       <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
         <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
@@ -31,7 +37,7 @@ export default function Historial() {
             </tr>
           </thead>
           <tbody>
-            {registros.length === 0 ? (
+            {!registros ? null : registros.length === 0 ? (
               <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No hay movimientos registrados aún.</td></tr>
             ) : (
               registros.map(reg => (
@@ -42,8 +48,8 @@ export default function Historial() {
                   <td style={{ padding: '15px', fontWeight: 'bold', color: '#152e52' }}>{reg.codigo_producto}</td>
                   <td style={{ padding: '15px' }}>
                     <span style={{ 
-                      backgroundColor: reg.accion === 'INGRESO NUEVO' ? '#dcfce7' : reg.accion === 'ELIMINACIÓN' ? '#fee2e2' : '#e0f2fe', 
-                      color: reg.accion === 'INGRESO NUEVO' ? '#166534' : reg.accion === 'ELIMINACIÓN' ? '#991b1b' : '#075985', 
+                      backgroundColor: reg.accion.startsWith('INGRESO') ? '#dcfce7' : reg.accion === 'ELIMINACIÓN' ? '#fee2e2' : '#e0f2fe', 
+                      color: reg.accion.startsWith('INGRESO') ? '#166534' : reg.accion === 'ELIMINACIÓN' ? '#991b1b' : '#075985', 
                       padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' 
                     }}>
                       {reg.accion}

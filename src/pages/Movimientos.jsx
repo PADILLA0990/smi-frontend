@@ -1,84 +1,56 @@
 import { useState } from 'react'
 import { ArrowRightLeft } from 'lucide-react'
+import { pedirJSON } from '../api'
+
+const FORM_INGRESO_VACIO = { codigo_producto: '', descripcion: '', categoria: '', cantidad: '', estado: 'Bueno', ubicacion_general: 'Recepción' }
 
 export default function Movimientos({ usuarioActual }) {
   // Estado para el formulario de Ingreso
-  const [formIngreso, setFormIngreso] = useState({
-    codigo_producto: '', descripcion: '', categoria: '', cantidad: '', estado: 'Bueno', ubicacion_general: 'Recepción'
-  })
+  const [formIngreso, setFormIngreso] = useState(FORM_INGRESO_VACIO)
 
   // Estado para el formulario de Salida
   const [formSalida, setFormSalida] = useState({
     codigo_producto: '', motivo: '', cantidad: ''
   })
 
+  // El backend crea el producto (o suma al stock si el código ya existe) y registra el historial
   const registrarIngreso = async (e) => {
     e.preventDefault()
-    
-    // 1. Guardar en inventario
+
     try {
-      const response = await fetch('https://smi-backend-r3ac.onrender.com/api/productos', {
+      const { producto, adicional } = await pedirJSON('/api/productos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formIngreso, cantidad: parseInt(formIngreso.cantidad) })
+        body: { ...formIngreso, cantidad: parseInt(formIngreso.cantidad), operario: usuarioActual }
       })
 
-      // Si el backend rechaza el ingreso (ej: código duplicado), no se registra en el historial
-      if (!response.ok) {
-        const data = await response.json()
-        alert(`❌ Error: ${data.error}`)
-        return
-      }
-    } catch {
-      alert("❌ Error de conexión con el servidor.")
-      return
+      alert(adicional
+        ? `✅ El código ${producto.codigo_producto} ya existía: se sumaron ${formIngreso.cantidad} unidades (stock total: ${producto.cantidad}).`
+        : `✅ ¡Ingreso registrado exitosamente por ${usuarioActual}!`)
+      setFormIngreso(FORM_INGRESO_VACIO)
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`)
     }
-
-    // 2. Reporte al Historial
-    await fetch('https://smi-backend-r3ac.onrender.com/api/historial', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        codigo_producto: formIngreso.codigo_producto,
-        accion: 'INGRESO NUEVO',
-        operario: usuarioActual,
-        detalles: `Ingresó cantidad: ${formIngreso.cantidad}`
-      })
-    })
-    
-    alert(`¡Ingreso registrado exitosamente por ${usuarioActual}!`)
-    setFormIngreso({ codigo_producto: '', descripcion: '', categoria: '', cantidad: '', estado: 'Bueno', ubicacion_general: 'Recepción' })
   }
 
   const registrarSalida = async (e) => {
     e.preventDefault()
-    
+
     try {
-      const response = await fetch('https://smi-backend-r3ac.onrender.com/api/salida', {
+      await pedirJSON('/api/salida', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           codigo_producto: formSalida.codigo_producto,
           cantidad_retirada: parseInt(formSalida.cantidad),
           motivo: formSalida.motivo,
           operario: usuarioActual
-        })
-      });
+        }
+      })
 
-      const data = await response.json();
-
-      // Si el backend detecta un error (no existe o no hay stock), mostramos la alerta
-      if (!response.ok) {
-        alert(`❌ Error: ${data.error}`);
-        return;
-      }
-      
-      // Si todo sale bien
-      alert(`✅ ¡Salida registrada exitosamente por ${usuarioActual}!`);
-      setFormSalida({ codigo_producto: '', motivo: '', cantidad: '' });
-
-    } catch {
-      alert("❌ Error de conexión con el servidor.");
+      alert(`✅ ¡Salida registrada exitosamente por ${usuarioActual}!`)
+      setFormSalida({ codigo_producto: '', motivo: '', cantidad: '' })
+    } catch (err) {
+      // Si el backend detecta un error (no existe, no hay stock, sin conexión), mostramos el motivo
+      alert(`❌ Error: ${err.message}`)
     }
   }
 
@@ -110,7 +82,7 @@ export default function Movimientos({ usuarioActual }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '120px' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>Cantidad</label>
-            <input type="number" placeholder="0" value={formIngreso.cantidad} onChange={e => setFormIngreso({...formIngreso, cantidad: e.target.value})} required style={{ padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}/>
+            <input type="number" min="1" step="1" placeholder="0" value={formIngreso.cantidad} onChange={e => setFormIngreso({...formIngreso, cantidad: e.target.value})} required style={{ padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}/>
           </div>
           
           <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', height: '43px' }}>
@@ -136,7 +108,7 @@ export default function Movimientos({ usuarioActual }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '120px' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>Cantidad</label>
-            <input type="number" placeholder="0" value={formSalida.cantidad} onChange={e => setFormSalida({...formSalida, cantidad: e.target.value})} required style={{ padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}/>
+            <input type="number" min="1" step="1" placeholder="0" value={formSalida.cantidad} onChange={e => setFormSalida({...formSalida, cantidad: e.target.value})} required style={{ padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}/>
           </div>
           
           <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#E31837', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', height: '43px' }}>
