@@ -1,11 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PackageSearch, Trash2 } from 'lucide-react'
+import { PackageSearch, Trash2, MapPin, PackageOpen } from 'lucide-react'
 import { pedirJSON } from '../api'
-import EstadoCarga from '../components/EstadoCarga'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import DataTable from '../components/ui/DataTable'
+import Badge from '../components/ui/Badge'
+import ErrorState from '../components/ui/ErrorState'
+import { useConfirmar, useAvisar } from '../lib/dialogos'
+import { formatearNumero, formatearFecha } from '../lib/formato'
 
 export default function Inventario({ usuarioActual }) {
   const [productos, setProductos] = useState(null)
   const [error, setError] = useState('')
+  const confirmar = useConfirmar()
+  const avisar = useAvisar()
 
   const cargarInventario = useCallback(() => pedirJSON('/api/productos')
     .then(data => {
@@ -17,90 +25,101 @@ export default function Inventario({ usuarioActual }) {
   useEffect(() => { cargarInventario() }, [cargarInventario])
 
   // El backend actualiza el producto y registra el historial en una sola operación
-  const moverProducto = async (id) => {
-    const nuevaEstanteria = prompt("Ingrese la nueva ubicación o estantería (Ej: Bodega 2, Pasillo A):")
-    if (!nuevaEstanteria || !nuevaEstanteria.trim()) return
+  const moverProducto = async (prod) => {
+    const nuevaEstanteria = await confirmar({
+      titulo: `Reubicar ${prod.codigo_producto}`,
+      mensaje: `${prod.descripcion} · ubicación actual: ${prod.codigo_estanteria || prod.ubicacion_general}`,
+      textoConfirmar: 'Reubicar',
+      campo: { etiqueta: 'Nueva ubicación o estantería', placeholder: 'Ej: AA02, Bodega 2, Pasillo A' }
+    })
+    if (!nuevaEstanteria) return
 
     try {
-      await pedirJSON(`/api/productos/${id}`, {
+      await pedirJSON(`/api/productos/${prod.id}`, {
         method: 'PUT',
         body: { ubicacion_general: 'Almacenamiento', codigo_estanteria: nuevaEstanteria, operario: usuarioActual }
       })
+      avisar(`${prod.codigo_producto} reubicado en ${nuevaEstanteria}.`)
       cargarInventario()
     } catch (err) {
-      alert(`❌ Error: ${err.message}`)
+      avisar(err.message, 'error')
     }
   }
 
-  const eliminarProducto = async (id) => {
-    const confirmar = window.confirm("⚠️ ¿Seguro que quieres eliminar este artículo? Esta acción quedará registrada en el historial.");
-    if (!confirmar) return
+  const eliminarProducto = async (prod) => {
+    const ok = await confirmar({
+      titulo: `Eliminar ${prod.codigo_producto}`,
+      mensaje: `Se retirará "${prod.descripcion}" (${formatearNumero(prod.cantidad)} unidades) del inventario. La acción quedará registrada en el historial.`,
+      textoConfirmar: 'Eliminar',
+      peligro: true
+    })
+    if (!ok) return
 
     try {
-      await pedirJSON(`/api/productos/${id}`, { method: 'DELETE', body: { operario: usuarioActual } })
+      await pedirJSON(`/api/productos/${prod.id}`, { method: 'DELETE', body: { operario: usuarioActual } })
+      avisar(`${prod.codigo_producto} eliminado del inventario.`)
       cargarInventario()
     } catch (err) {
-      alert(`❌ Error: ${err.message}`)
+      avisar(err.message, 'error')
     }
   }
+
+  const columnas = [
+    { id: 'codigo_producto', titulo: 'Código', fija: true, render: p => <span className="texto-codigo">{p.codigo_producto}</span> },
+    { id: 'descripcion', titulo: 'Descripción' },
+    { id: 'categoria', titulo: 'Categoría', render: p => <Badge>{p.categoria}</Badge> },
+    {
+      id: 'cantidad', titulo: 'Cantidad', alinear: 'num',
+      render: p => (
+        <>
+          {formatearNumero(p.cantidad)}
+          {p.cantidad_reservada > 0 && (
+            <div className="texto-aviso" title="Apartadas por Solicitudes SBO aprobadas">{formatearNumero(p.cantidad_reservada)} reservadas</div>
+          )}
+        </>
+      )
+    },
+    {
+      id: 'ubicacion', titulo: 'Ubicación', valor: p => p.codigo_estanteria || p.ubicacion_general,
+      render: p => (
+        <>
+          <div className="texto-suave texto-sm">{p.ubicacion_general}</div>
+          <strong style={{ color: 'var(--navy-800)' }}>{p.codigo_estanteria || 'Sin asignar'}</strong>
+        </>
+      )
+    },
+    { id: 'fecha_ingreso', titulo: 'Ingreso', oculta: true, valor: p => p.fecha_ingreso, render: p => formatearFecha(p.fecha_ingreso) },
+    {
+      id: 'acciones', titulo: 'Acciones', fija: true, ordenable: false, alinear: 'centro', valor: () => '',
+      render: p => (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <button className="btn btn--primario btn--sm" onClick={() => moverProducto(p)}>
+            <MapPin size={14} aria-hidden="true" /> Reubicar
+          </button>
+          <button className="btn btn--secundario btn--sm" style={{ color: 'var(--peligro)' }} onClick={() => eliminarProducto(p)} aria-label={`Eliminar ${p.codigo_producto}`} title="Eliminar producto">
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )
+    }
+  ]
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px', color: 'white' }}>
-        <PackageSearch size={36} color="#E31837" />
-        <h1 style={{ margin: 0 }}>Inventario Maestro</h1>
-      </div>
+      <PageHeader icono={PackageSearch} titulo="Inventario Maestro" subtitulo="Existencias, reservas y ubicación de cada artículo" />
 
-      <EstadoCarga cargando={!productos} error={error} onReintentar={() => { setError(''); cargarInventario() }} />
+      <ErrorState mensaje={error} onReintentar={() => { setError(''); cargarInventario() }} />
 
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#f8fafc' }}>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Código</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Descripción</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Categoría</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Cant.</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Ubicación</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {productos && productos.length === 0 && (
-              <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No hay productos en el inventario.</td></tr>
-            )}
-            {(productos || []).map(prod => (
-              <tr key={prod.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '15px', fontWeight: 'bold', color: '#0f172a' }}>{prod.codigo_producto}</td>
-                <td style={{ padding: '15px', color: '#334155' }}>{prod.descripcion}</td>
-                <td style={{ padding: '15px' }}>
-                  <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '12px', fontSize: '13px', fontWeight: '500' }}>{prod.categoria}</span>
-                </td>
-                <td style={{ padding: '15px', color: '#334155', fontWeight: '500' }}>
-                  {prod.cantidad}
-                  {prod.cantidad_reservada > 0 && (
-                    <div style={{ color: '#92400e', fontSize: '12px', fontWeight: 'normal' }} title="Apartadas por Solicitudes SBO aprobadas">
-                      {prod.cantidad_reservada} reservadas
-                    </div>
-                  )}
-                </td>
-                <td style={{ padding: '15px' }}>
-                  <div style={{ color: '#64748b', fontSize: '13px' }}>{prod.ubicacion_general}</div>
-                  <strong style={{ color: '#152e52', fontSize: '14px' }}>{prod.codigo_estanteria || 'Sin asignar'}</strong>
-                </td>
-                <td style={{ padding: '15px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                  <button onClick={() => moverProducto(prod.id)} style={{ padding: '8px 16px', backgroundColor: '#152e52', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}>
-                    Reubicar
-                  </button>
-                  <button onClick={() => eliminarProducto(prod.id)} style={{ padding: '8px', backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #f87171', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Eliminar Producto">
-                    <Trash2 size={18} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <DataTable
+          idTabla="inventario"
+          columnas={columnas}
+          filas={error && !productos ? [] : productos}
+          busqueda="Buscar por código, descripción, categoría o ubicación…"
+          ordenInicial={{ id: 'codigo_producto', dir: 'asc' }}
+          vacio={{ icono: PackageOpen, titulo: 'No hay productos en el inventario', mensaje: 'Registre un ingreso en "Ingresos y Retiros" para empezar.' }}
+        />
+      </Card>
     </div>
   )
 }

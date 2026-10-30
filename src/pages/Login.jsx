@@ -1,46 +1,53 @@
-import { useState } from 'react';
-import logoBab from '../assets/logo-bab.png';
+import { useState } from 'react'
+import { AlertCircle } from 'lucide-react'
+import logoBab from '../assets/logo-bab.png'
+import Campo from '../components/ui/Campo'
 
 export default function Login({ onLogin }) {
-  const [usuario, setUsuario] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [usuario, setUsuario] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
+  // TODO Fase B: la validación pasará al backend con usuarios reales y contraseñas cifradas
   const handleSubmit = (e) => {
-    e.preventDefault();
+    e.preventDefault()
     if (usuario === 'Operario01' && password === 'OP01-BAB') {
-      onLogin('Operario01');
+      onLogin('Operario01')
     } else if (usuario === 'Operario02' && password === 'OP02-BAB') {
-      onLogin('Operario02');
+      onLogin('Operario02')
     } else {
-      setError('Credenciales incorrectas. Acceso denegado.');
+      setError('Credenciales incorrectas. Acceso denegado.')
     }
-  };
+  }
 
   return (
-    // Fondo Azul Principal
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#152e52', fontFamily: 'system-ui' }}>
-      <div style={{ padding: '40px', width: '100%', maxWidth: '400px', textAlign: 'center' }}>
-        
-        {/* Logo que ahora sí se verá sobre el azul */}
-        <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'center' }}>
-            <img src={logoBab} alt="Logo Banco de Alimentos Bogotá" style={{ maxHeight: '80px', width: 'auto', objectFit: 'contain' }} />
+    <main className="login">
+      <div className="login__caja">
+        <div className="login__marca">
+          <img src={logoBab} alt="Banco de Alimentos de Bogotá" />
+          <h1>SMI-ControlBAB</h1>
+          <p>Plataforma de Control Logístico e Inventario</p>
         </div>
 
-        {/* Textos en Blanco */}
-        <h2 style={{ color: 'white', marginBottom: '5px', fontSize: '24px' }}>SMI - ControlBAB</h2>
-        <p style={{ color: '#cbd5e1', marginBottom: '40px', fontSize: '15px' }}>Plataforma de Control Logístico e Inventario</p>
-
-        {error && <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px', borderRadius: '4px', marginBottom: '20px', fontSize: '14px', fontWeight: 'bold' }}>{error}</div>}
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <input type="text" placeholder="Usuario" value={usuario} onChange={(e) => setUsuario(e.target.value)} required style={{ padding: '16px', borderRadius: '8px', border: 'none', fontSize: '15px', backgroundColor: 'rgba(255,255,255,0.9)' }} />
-          <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ padding: '16px', borderRadius: '8px', border: 'none', fontSize: '15px', backgroundColor: 'rgba(255,255,255,0.9)' }} />
-          <button type="submit" style={{ padding: '16px', backgroundColor: '#E31837', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', marginTop: '10px', transition: 'background-color 0.2s' }}>
-            Iniciar Sesión
-          </button>
-        </form>
+        <div className="card">
+          {error && (
+            <div className="estado-error" role="alert" style={{ marginBottom: 14 }}>
+              <AlertCircle size={18} aria-hidden="true" /><span>{error}</span>
+            </div>
+          )}
+          <form onSubmit={handleSubmit}>
+            <Campo etiqueta="Usuario">
+              <input className="input" autoComplete="username" value={usuario} onChange={(e) => setUsuario(e.target.value)} required />
+            </Campo>
+            <Campo etiqueta="Contraseña">
+              <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </Campo>
+            <button type="submit" className="btn btn--marca" style={{ marginTop: 6, padding: '11px 18px' }}>
+              Iniciar Sesión
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
-  );
+    </main>
+  )
 }

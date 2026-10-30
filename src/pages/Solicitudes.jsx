@@ -1,47 +1,35 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ClipboardList, Plus, Trash2, X } from 'lucide-react'
+import { ClipboardList, Plus, Trash2, X, FilePlus2, ListChecks } from 'lucide-react'
 import { pedirJSON } from '../api'
-import EstadoCarga from '../components/EstadoCarga'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import Campo from '../components/ui/Campo'
+import DataTable from '../components/ui/DataTable'
+import Badge from '../components/ui/Badge'
+import ErrorState from '../components/ui/ErrorState'
+import SelectBuscable from '../components/ui/SelectBuscable'
+import { useConfirmar, useAvisar } from '../lib/dialogos'
+import { TONO_ESTADO_SBO, ETIQUETA_ESTADO_SBO } from '../lib/tonos'
+import { formatearFecha, formatearFechaHora, formatearFechaCalendario, formatearNumero } from '../lib/formato'
 
 const ESTADOS = ['CREADA', 'APROBADA', 'EN_ALISTAMIENTO', 'ALISTADA', 'DESPACHADA', 'CANCELADA']
 
-const COLORES_ESTADO = {
-  CREADA:          { bg: '#e0f2fe', color: '#075985' },
-  APROBADA:        { bg: '#ede9fe', color: '#5b21b6' },
-  EN_ALISTAMIENTO: { bg: '#fef3c7', color: '#92400e' },
-  ALISTADA:        { bg: '#cffafe', color: '#155e75' },
-  DESPACHADA:      { bg: '#dcfce7', color: '#166534' },
-  CANCELADA:       { bg: '#fee2e2', color: '#991b1b' }
-}
-
 const ACCIONES = {
-  aprobar:   { label: 'Aprobar',               color: '#5b21b6' },
-  iniciar:   { label: 'Iniciar alistamiento',  color: '#d97706' },
-  finalizar: { label: 'Finalizar alistamiento', color: '#0891b2' },
-  despachar: { label: 'Despachar',             color: '#10b981' },
-  cancelar:  { label: 'Cancelar',              color: '#E31837' }
+  aprobar:   { label: 'Aprobar',                clase: 'btn--primario' },
+  iniciar:   { label: 'Iniciar alistamiento',   clase: 'btn--primario' },
+  finalizar: { label: 'Finalizar alistamiento', clase: 'btn--primario' },
+  despachar: { label: 'Despachar',              clase: 'btn--exito' },
+  cancelar:  { label: 'Cancelar solicitud',     clase: 'btn--peligro' }
 }
 
 // Usuarios disponibles como alistadores (los mismos del login)
 const ALISTADORES = ['Operario01', 'Operario02']
 
-const FORM_VACIO = { codigo_sbo: '', beneficiario: '', fecha_requerida: '', observaciones: '', items: [{ codigo_producto: '', cantidad_solicitada: '' }] }
+const ITEM_VACIO = { codigo_producto: '', cantidad_solicitada: '' }
+const FORM_VACIO = { codigo_sbo: '', beneficiario: '', fecha_requerida: '', observaciones: '', items: [ITEM_VACIO] }
 
-const estiloInput = { padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }
-const estiloLabel = { fontSize: '13px', fontWeight: 'bold', color: '#64748b' }
-const estiloTarjeta = { backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', marginBottom: '30px' }
-const estiloTitulo = { marginTop: 0, color: '#152e52', fontSize: '20px', borderBottom: '2px solid #f1f5f9', paddingBottom: '15px', marginBottom: '20px' }
-const estiloTh = { padding: '12px', borderBottom: '2px solid #e2e8f0', color: '#475569' }
-const estiloTd = { padding: '12px', borderBottom: '1px solid #f1f5f9' }
-
-function BadgeEstado({ estado }) {
-  const { bg, color } = COLORES_ESTADO[estado]
-  return (
-    <span style={{ backgroundColor: bg, color, padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-      {estado.replace('_', ' ')}
-    </span>
-  )
-}
+const BadgeEstado = ({ estado }) => <Badge tono={TONO_ESTADO_SBO[estado]}>{ETIQUETA_ESTADO_SBO[estado]}</Badge>
+const libre = (p) => p.cantidad - (p.cantidad_reservada || 0)
 
 export default function Solicitudes({ usuarioActual }) {
   const [solicitudes, setSolicitudes] = useState(null)
@@ -52,6 +40,9 @@ export default function Solicitudes({ usuarioActual }) {
   const [detalle, setDetalle] = useState(null)
   const [alistador, setAlistador] = useState(ALISTADORES[0])
   const [cantidades, setCantidades] = useState({})
+  const [ocupado, setOcupado] = useState(false)
+  const confirmar = useConfirmar()
+  const avisar = useAvisar()
 
   const cargarSolicitudes = useCallback(() => pedirJSON(`/api/solicitudes${filtro ? `?estado=${filtro}` : ''}`)
     .then(data => {
@@ -63,9 +54,10 @@ export default function Solicitudes({ usuarioActual }) {
   useEffect(() => { cargarSolicitudes() }, [cargarSolicitudes])
 
   // Solo alimenta el autocompletado de códigos: si falla, el formulario sigue funcionando
-  useEffect(() => {
-    pedirJSON('/api/productos').then(setProductos).catch(() => setProductos([]))
-  }, [])
+  const cargarProductos = useCallback(() => pedirJSON('/api/productos').then(setProductos).catch(() => setProductos([])), [])
+  useEffect(() => { cargarProductos() }, [cargarProductos])
+
+  const opcionesProductos = productos.map(p => ({ valor: p.codigo_producto, etiqueta: p.descripcion, detalle: `libre ${formatearNumero(libre(p))}` }))
 
   const abrirDetalle = async (id) => {
     try {
@@ -73,17 +65,17 @@ export default function Solicitudes({ usuarioActual }) {
       setDetalle(data)
       setCantidades(Object.fromEntries(data.items.map(item => [item.id, item.cantidad_alistada || item.cantidad_solicitada])))
     } catch (err) {
-      alert(`❌ Error: ${err.message}`)
+      avisar(err.message, 'error')
     }
   }
 
   const actualizarItem = (index, campo, valor) => {
-    const items = form.items.map((item, i) => i === index ? { ...item, [campo]: valor } : item)
-    setForm({ ...form, items })
+    setForm(f => ({ ...f, items: f.items.map((item, i) => i === index ? { ...item, [campo]: valor } : item) }))
   }
 
   const crearSolicitud = async (e) => {
     e.preventDefault()
+    setOcupado(true)
     try {
       const data = await pedirJSON('/api/solicitudes', {
         method: 'POST',
@@ -94,18 +86,29 @@ export default function Solicitudes({ usuarioActual }) {
           items: form.items.map(item => ({ ...item, cantidad_solicitada: parseInt(item.cantidad_solicitada) }))
         }
       })
-      alert(`✅ Solicitud ${data.codigo_sbo} creada por ${usuarioActual}`)
+      avisar(`Solicitud ${data.codigo_sbo} creada por ${usuarioActual}.`)
       setForm(FORM_VACIO)
       cargarSolicitudes()
     } catch (err) {
-      alert(`❌ Error: ${err.message}`)
+      avisar(err.message, 'error')
+    } finally {
+      setOcupado(false)
     }
   }
 
   const ejecutarAccion = async (accion) => {
-    if (accion === 'cancelar' && !window.confirm(`⚠️ ¿Seguro que quieres cancelar la solicitud ${detalle.codigo_sbo}? Se liberará el stock reservado.`)) return
-    if (accion === 'despachar' && !window.confirm(`¿Confirmar despacho de ${detalle.codigo_sbo}? Se descontará el stock del inventario.`)) return
+    if (accion === 'cancelar' && !await confirmar({
+      titulo: `Cancelar ${detalle.codigo_sbo}`,
+      mensaje: 'La solicitud quedará cancelada y se liberará el stock reservado. Esta acción no se puede deshacer.',
+      textoConfirmar: 'Cancelar solicitud', textoCancelar: 'Volver', peligro: true
+    })) return
+    if (accion === 'despachar' && !await confirmar({
+      titulo: `Despachar ${detalle.codigo_sbo}`,
+      mensaje: `Se descontarán del inventario las unidades alistadas y se entregarán a ${detalle.beneficiario}.`,
+      textoConfirmar: 'Despachar'
+    })) return
 
+    setOcupado(true)
     try {
       const data = await pedirJSON(`/api/solicitudes/${detalle.id}/transicion`, {
         method: 'POST',
@@ -117,176 +120,171 @@ export default function Solicitudes({ usuarioActual }) {
         }
       })
       setDetalle(data)
+      avisar(`${data.codigo_sbo}: ${ETIQUETA_ESTADO_SBO[data.estado].toLowerCase()}.`)
       cargarSolicitudes()
+      cargarProductos()
     } catch (err) {
-      alert(`❌ Error: ${err.message}`)
+      avisar(err.message, 'error')
+    } finally {
+      setOcupado(false)
     }
   }
 
+  const columnas = [
+    { id: 'codigo_sbo', titulo: 'SBO', fija: true, render: s => <span className="texto-codigo">{s.codigo_sbo}</span> },
+    { id: 'beneficiario', titulo: 'Beneficiario' },
+    { id: 'estado', titulo: 'Estado', valor: s => ETIQUETA_ESTADO_SBO[s.estado], render: s => <BadgeEstado estado={s.estado} /> },
+    { id: 'items', titulo: 'Ítems', alinear: 'num', valor: s => s.items.length },
+    { id: 'alistador', titulo: 'Alistador', valor: s => s.alistador || '—' },
+    { id: 'fecha_requerida', titulo: 'Requerida', valor: s => s.fecha_requerida, render: s => formatearFechaCalendario(s.fecha_requerida) },
+    { id: 'fecha_solicitud', titulo: 'Creada', valor: s => s.fecha_solicitud, render: s => <span className="texto-suave texto-sm">{formatearFecha(s.fecha_solicitud)}</span> }
+  ]
+
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px', color: 'white' }}>
-        <ClipboardList size={36} color="#E31837" />
-        <h1 style={{ margin: 0 }}>Solicitudes SBO</h1>
-      </div>
+      <PageHeader icono={ClipboardList} titulo="Solicitudes SBO" subtitulo="Pedidos de las organizaciones beneficiarias: aprobación, alistamiento y despacho" />
 
-      <EstadoCarga cargando={!solicitudes} error={error} onReintentar={() => { setError(''); cargarSolicitudes() }} />
+      <ErrorState mensaje={error} onReintentar={() => { setError(''); cargarSolicitudes() }} />
 
-      {/* NUEVA SOLICITUD */}
-      <div style={estiloTarjeta}>
-        <h2 style={estiloTitulo}>📝 Nueva Solicitud</h2>
-
-        <datalist id="codigos-productos">
-          {productos.map(p => <option key={p.id} value={p.codigo_producto}>{p.descripcion} ({p.cantidad} disp.)</option>)}
-        </datalist>
-
+      <Card titulo="Nueva solicitud" icono={FilePlus2}>
         <form onSubmit={crearSolicitud}>
-          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexGrow: 1 }}>
-              <label style={estiloLabel}>Código SBO</label>
-              <input placeholder="Ej: SBO-2026-001" value={form.codigo_sbo} onChange={e => setForm({ ...form, codigo_sbo: e.target.value })} required style={estiloInput} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexGrow: 2 }}>
-              <label style={estiloLabel}>Beneficiario / Organización</label>
-              <input placeholder="Ej: Fundación XYZ" value={form.beneficiario} onChange={e => setForm({ ...form, beneficiario: e.target.value })} required style={estiloInput} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <label style={estiloLabel}>Fecha requerida</label>
-              <input type="date" value={form.fecha_requerida} onChange={e => setForm({ ...form, fecha_requerida: e.target.value })} style={estiloInput} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexBasis: '100%' }}>
-              <label style={estiloLabel}>Observaciones</label>
-              <input placeholder="Opcional" value={form.observaciones} onChange={e => setForm({ ...form, observaciones: e.target.value })} style={estiloInput} />
-            </div>
+          <div className="form-fila" style={{ marginBottom: 18 }}>
+            <Campo etiqueta="Código SBO">
+              <input className="input" placeholder="Ej: SBO-2026-001" value={form.codigo_sbo} onChange={e => setForm({ ...form, codigo_sbo: e.target.value })} required />
+            </Campo>
+            <Campo etiqueta="Beneficiario / organización" tamano="ancho">
+              <input className="input" placeholder="Ej: Fundación XYZ" value={form.beneficiario} onChange={e => setForm({ ...form, beneficiario: e.target.value })} required />
+            </Campo>
+            <Campo etiqueta="Fecha requerida" tamano="angosto">
+              <input className="input" type="date" value={form.fecha_requerida} onChange={e => setForm({ ...form, fecha_requerida: e.target.value })} style={{ minWidth: 150 }} />
+            </Campo>
+            <Campo etiqueta="Observaciones" tamano="completo">
+              <input className="input" placeholder="Opcional" value={form.observaciones} onChange={e => setForm({ ...form, observaciones: e.target.value })} />
+            </Campo>
           </div>
 
-          <label style={estiloLabel}>Productos solicitados</label>
-          {form.items.map((item, index) => (
-            <div key={index} style={{ display: 'flex', gap: '10px', marginTop: '8px', alignItems: 'center' }}>
-              <input list="codigos-productos" placeholder="Código del producto" value={item.codigo_producto} onChange={e => actualizarItem(index, 'codigo_producto', e.target.value)} required style={{ ...estiloInput, flexGrow: 1 }} />
-              <input type="number" min="1" placeholder="Cantidad" value={item.cantidad_solicitada} onChange={e => actualizarItem(index, 'cantidad_solicitada', e.target.value)} required style={{ ...estiloInput, width: '120px' }} />
-              <button type="button" disabled={form.items.length === 1} onClick={() => setForm({ ...form, items: form.items.filter((_, i) => i !== index) })} style={{ background: 'none', border: 'none', cursor: form.items.length === 1 ? 'not-allowed' : 'pointer', color: '#94a3b8' }}>
-                <Trash2 size={18} />
-              </button>
-            </div>
-          ))}
+          <p className="etiqueta" style={{ marginBottom: 6 }}>Productos solicitados</p>
+          {form.items.map((item, index) => {
+            const prod = productos.find(p => p.codigo_producto === item.codigo_producto)
+            const excede = prod && Number(item.cantidad_solicitada) > libre(prod)
+            return (
+              <div key={index} className="form-fila" style={{ marginBottom: 8, alignItems: 'flex-start' }}>
+                <div style={{ flex: '1 1 260px' }}>
+                  <SelectBuscable
+                    opciones={opcionesProductos}
+                    valor={item.codigo_producto}
+                    required
+                    placeholder="Buscar código o descripción"
+                    mensajeVacio="Ese código no está en el inventario"
+                    onChange={codigo => actualizarItem(index, 'codigo_producto', codigo)}
+                  />
+                </div>
+                <div style={{ flex: '0 0 130px' }}>
+                  <input className="input" type="number" min="1" step="1" placeholder="Cantidad" aria-label="Cantidad solicitada"
+                    value={item.cantidad_solicitada} onChange={e => actualizarItem(index, 'cantidad_solicitada', e.target.value)} required />
+                  {excede && <span className="campo__ayuda campo__ayuda--aviso">Solo hay {formatearNumero(libre(prod))} libres</span>}
+                </div>
+                <button type="button" className="btn btn--fantasma" disabled={form.items.length === 1} aria-label="Quitar producto"
+                  onClick={() => setForm({ ...form, items: form.items.filter((_, i) => i !== index) })}>
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )
+          })}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px' }}>
-            <button type="button" onClick={() => setForm({ ...form, items: [...form.items, { codigo_producto: '', cantidad_solicitada: '' }] })} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '10px 16px', backgroundColor: 'transparent', color: '#152e52', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-              <Plus size={16} /> Agregar producto
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+            <button type="button" className="btn btn--secundario" onClick={() => setForm({ ...form, items: [...form.items, ITEM_VACIO] })}>
+              <Plus size={16} aria-hidden="true" /> Agregar producto
             </button>
-            <button type="submit" style={{ padding: '12px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-              Crear Solicitud
-            </button>
+            <button type="submit" className="btn btn--exito" disabled={ocupado}>Crear solicitud</button>
           </div>
         </form>
-      </div>
+      </Card>
 
-      {/* DETALLE DE LA SOLICITUD SELECCIONADA */}
       {detalle && (
-        <div style={estiloTarjeta}>
-          <div style={{ ...estiloTitulo, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {detalle.codigo_sbo} <BadgeEstado estado={detalle.estado} />
-            </span>
-            <button onClick={() => setDetalle(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+        <Card
+          titulo={<>{detalle.codigo_sbo} <BadgeEstado estado={detalle.estado} /></>}
+          icono={ListChecks}
+          acciones={<button className="btn btn--fantasma" onClick={() => setDetalle(null)} aria-label="Cerrar detalle"><X size={20} /></button>}
+        >
+          <div className="detalle-datos">
+            <span><b>Beneficiario:</b> {detalle.beneficiario}</span>
+            <span><b>Creada por:</b> {detalle.creado_por}</span>
+            {detalle.alistador && <span><b>Alistador:</b> {detalle.alistador}</span>}
+            {detalle.fecha_requerida && <span><b>Requerida:</b> {formatearFechaCalendario(detalle.fecha_requerida)}</span>}
+          </div>
+          {detalle.observaciones && <p className="texto-suave texto-sm" style={{ marginBottom: 12 }}>{detalle.observaciones}</p>}
+
+          <div className="tabla-scroll" style={{ marginBottom: 18 }}>
+            <table className="tabla">
+              <thead>
+                <tr><th>Código</th><th>Descripción</th><th className="num">Solicitada</th><th className="num">Alistada</th></tr>
+              </thead>
+              <tbody>
+                {detalle.items.map(item => (
+                  <tr key={item.id}>
+                    <td className="texto-codigo">{item.codigo_producto}</td>
+                    <td>{item.descripcion}</td>
+                    <td className="num">{formatearNumero(item.cantidad_solicitada)}</td>
+                    <td className="num">
+                      {detalle.estado === 'EN_ALISTAMIENTO' ? (
+                        <input className="input input--sm" type="number" min="0" max={item.cantidad_solicitada} aria-label={`Cantidad alistada de ${item.codigo_producto}`}
+                          value={cantidades[item.id]} onChange={e => setCantidades({ ...cantidades, [item.id]: e.target.value })} style={{ width: 90, textAlign: 'right' }} />
+                      ) : formatearNumero(item.cantidad_alistada)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <p style={{ color: '#475569', marginTop: 0 }}>
-            <b>Beneficiario:</b> {detalle.beneficiario} · <b>Creada por:</b> {detalle.creado_por}
-            {detalle.alistador && <> · <b>Alistador:</b> {detalle.alistador}</>}
-            {detalle.fecha_requerida && <> · <b>Requerida:</b> {new Date(detalle.fecha_requerida).toLocaleDateString()}</>}
-          </p>
-          {detalle.observaciones && <p style={{ color: '#64748b', fontSize: '14px' }}>{detalle.observaciones}</p>}
-
-          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', marginBottom: '20px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f8fafc' }}>
-                <th style={estiloTh}>Código</th>
-                <th style={estiloTh}>Descripción</th>
-                <th style={estiloTh}>Solicitada</th>
-                <th style={estiloTh}>Alistada</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detalle.items.map(item => (
-                <tr key={item.id}>
-                  <td style={{ ...estiloTd, fontWeight: 'bold', color: '#152e52' }}>{item.codigo_producto}</td>
-                  <td style={estiloTd}>{item.descripcion}</td>
-                  <td style={estiloTd}>{item.cantidad_solicitada}</td>
-                  <td style={estiloTd}>
-                    {detalle.estado === 'EN_ALISTAMIENTO' ? (
-                      <input type="number" min="0" max={item.cantidad_solicitada} value={cantidades[item.id]} onChange={e => setCantidades({ ...cantidades, [item.id]: e.target.value })} style={{ ...estiloInput, padding: '6px', width: '80px' }} />
-                    ) : item.cantidad_alistada}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
           {detalle.acciones.length > 0 && (
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 20 }}>
               {detalle.acciones.includes('iniciar') && (
-                <select value={alistador} onChange={e => setAlistador(e.target.value)} style={{ ...estiloInput, padding: '10px' }}>
+                <select className="select" style={{ width: 'auto' }} value={alistador} onChange={e => setAlistador(e.target.value)} aria-label="Alistador">
                   {ALISTADORES.map(a => <option key={a} value={a}>Alistador: {a}</option>)}
                 </select>
               )}
               {detalle.acciones.map(accion => (
-                <button key={accion} onClick={() => ejecutarAccion(accion)} style={{ padding: '10px 18px', backgroundColor: ACCIONES[accion].color, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+                <button key={accion} className={`btn ${ACCIONES[accion].clase}`} disabled={ocupado} onClick={() => ejecutarAccion(accion)}>
                   {ACCIONES[accion].label}
                 </button>
               ))}
             </div>
           )}
 
-          <h3 style={{ color: '#152e52', fontSize: '15px' }}>Trazabilidad</h3>
-          {detalle.eventos.map(ev => (
-            <div key={ev.id} style={{ fontSize: '13px', color: '#475569', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#94a3b8' }}>{new Date(ev.fecha).toLocaleString()}</span> · {ev.estado_anterior ? `${ev.estado_anterior} → ` : ''}<b>{ev.estado_nuevo}</b> · {ev.usuario}{ev.nota && ` · ${ev.nota}`}
-            </div>
-          ))}
-        </div>
+          <h3 className="etiqueta" style={{ marginBottom: 4 }}>Trazabilidad</h3>
+          <ol className="linea-tiempo">
+            {detalle.eventos.map(ev => (
+              <li key={ev.id}>
+                <span>{formatearFechaHora(ev.fecha)}</span>
+                {ev.estado_anterior && <><BadgeEstado estado={ev.estado_anterior} /> →</>}
+                <BadgeEstado estado={ev.estado_nuevo} />
+                <span>{ev.usuario}{ev.nota && ` · ${ev.nota}`}</span>
+              </li>
+            ))}
+          </ol>
+        </Card>
       )}
 
-      {/* LISTADO */}
-      <div style={estiloTarjeta}>
-        <div style={{ ...estiloTitulo, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>📋 Solicitudes</span>
-          <select value={filtro} onChange={e => setFiltro(e.target.value)} style={{ ...estiloInput, padding: '8px', fontSize: '14px' }}>
-            <option value="">Todos los estados</option>
-            {ESTADOS.map(est => <option key={est} value={est}>{est.replace('_', ' ')}</option>)}
-          </select>
-        </div>
-
-        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#f8fafc' }}>
-              <th style={estiloTh}>SBO</th>
-              <th style={estiloTh}>Beneficiario</th>
-              <th style={estiloTh}>Estado</th>
-              <th style={estiloTh}>Ítems</th>
-              <th style={estiloTh}>Alistador</th>
-              <th style={estiloTh}>Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!solicitudes ? null : solicitudes.length === 0 ? (
-              <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No hay solicitudes registradas.</td></tr>
-            ) : (
-              solicitudes.map(sol => (
-                <tr key={sol.id} onClick={() => abrirDetalle(sol.id)} style={{ cursor: 'pointer', backgroundColor: detalle?.id === sol.id ? '#f1f5f9' : 'transparent' }}>
-                  <td style={{ ...estiloTd, fontWeight: 'bold', color: '#152e52' }}>{sol.codigo_sbo}</td>
-                  <td style={estiloTd}>{sol.beneficiario}</td>
-                  <td style={estiloTd}><BadgeEstado estado={sol.estado} /></td>
-                  <td style={estiloTd}>{sol.items.length}</td>
-                  <td style={estiloTd}>{sol.alistador || '—'}</td>
-                  <td style={{ ...estiloTd, color: '#64748b', fontSize: '13px' }}>{new Date(sol.fecha_solicitud).toLocaleDateString()}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card titulo="Solicitudes">
+        <DataTable
+          idTabla="solicitudes"
+          columnas={columnas}
+          filas={error && !solicitudes ? [] : solicitudes}
+          busqueda="Buscar por SBO, beneficiario o alistador…"
+          ordenInicial={{ id: 'fecha_solicitud', dir: 'desc' }}
+          onFilaClick={s => abrirDetalle(s.id)}
+          filaActiva={detalle?.id}
+          vacio={{ icono: ClipboardList, titulo: filtro ? 'No hay solicitudes en ese estado' : 'No hay solicitudes registradas' }}
+          herramientas={
+            <select className="select select--sm" style={{ width: 'auto' }} value={filtro} onChange={e => setFiltro(e.target.value)} aria-label="Filtrar por estado">
+              <option value="">Todos los estados</option>
+              {ESTADOS.map(est => <option key={est} value={est}>{ETIQUETA_ESTADO_SBO[est]}</option>)}
+            </select>
+          }
+        />
+      </Card>
     </div>
   )
 }

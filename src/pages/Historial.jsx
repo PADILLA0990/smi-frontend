@@ -1,7 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { History } from 'lucide-react'
 import { pedirJSON } from '../api'
-import EstadoCarga from '../components/EstadoCarga'
+import PageHeader from '../components/ui/PageHeader'
+import Card from '../components/ui/Card'
+import DataTable from '../components/ui/DataTable'
+import Badge from '../components/ui/Badge'
+import ErrorState from '../components/ui/ErrorState'
+import { tonoAccion } from '../lib/tonos'
+import { formatearFecha, formatearHora } from '../lib/formato'
+
+const columnas = [
+  {
+    id: 'fecha', titulo: 'Fecha y hora', valor: r => r.fecha,
+    render: r => <span className="texto-suave texto-sm">{formatearFecha(r.fecha)}<br />{formatearHora(r.fecha)}</span>
+  },
+  { id: 'codigo_producto', titulo: 'Código', render: r => <span className="texto-codigo">{r.codigo_producto}</span> },
+  { id: 'accion', titulo: 'Acción', render: r => <Badge tono={tonoAccion(r.accion)}>{r.accion}</Badge> },
+  { id: 'operario', titulo: 'Operario' },
+  { id: 'detalles', titulo: 'Detalles', render: r => <span className="texto-suave">{r.detalles || '—'}</span> }
+]
 
 export default function Historial() {
   const [registros, setRegistros] = useState(null)
@@ -18,51 +35,21 @@ export default function Historial() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px', color: 'white' }}>
-        <History size={36} color="#E31837" />
-        <h1 style={{ margin: 0 }}>Historial de Movimientos </h1>
-      </div>
+      <PageHeader icono={History} titulo="Historial de Movimientos" subtitulo="Auditoría de ingresos, salidas, reubicaciones y solicitudes" />
 
-      <EstadoCarga cargando={!registros} error={error} onReintentar={() => { setError(''); cargarHistorial() }} />
+      <ErrorState mensaje={error} onReintentar={() => { setError(''); cargarHistorial() }} />
 
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}>
-        <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#f8fafc' }}>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Fecha y Hora</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Código</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Acción</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Operario</th>
-              <th style={{ padding: '15px', borderBottom: '2px solid #e2e8f0', color: '#475569' }}>Detalles</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!registros ? null : registros.length === 0 ? (
-              <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No hay movimientos registrados aún.</td></tr>
-            ) : (
-              registros.map(reg => (
-                <tr key={reg.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '15px', color: '#64748b', fontSize: '13px' }}>
-                    {new Date(reg.fecha).toLocaleString()}
-                  </td>
-                  <td style={{ padding: '15px', fontWeight: 'bold', color: '#152e52' }}>{reg.codigo_producto}</td>
-                  <td style={{ padding: '15px' }}>
-                    <span style={{ 
-                      backgroundColor: reg.accion.startsWith('INGRESO') ? '#dcfce7' : reg.accion === 'ELIMINACIÓN' ? '#fee2e2' : '#e0f2fe', 
-                      color: reg.accion.startsWith('INGRESO') ? '#166534' : reg.accion === 'ELIMINACIÓN' ? '#991b1b' : '#075985', 
-                      padding: '4px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' 
-                    }}>
-                      {reg.accion}
-                    </span>
-                  </td>
-                  <td style={{ padding: '15px', color: '#334155', fontWeight: '500' }}>{reg.operario}</td>
-                  <td style={{ padding: '15px', color: '#475569', fontSize: '14px' }}>{reg.detalles}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <DataTable
+          idTabla="historial"
+          columnas={columnas}
+          filas={error && !registros ? [] : registros}
+          busqueda="Buscar por código, acción, operario o detalle…"
+          ordenInicial={{ id: 'fecha', dir: 'desc' }}
+          porPagina={20}
+          vacio={{ icono: History, titulo: 'No hay movimientos registrados aún' }}
+        />
+      </Card>
     </div>
   )
 }

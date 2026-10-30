@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, ArrowRightLeft, PackageSearch, History, Settings, LogOut, Menu, ClipboardList, Map as MapIcon } from 'lucide-react'
+import { LayoutDashboard, ArrowRightLeft, PackageSearch, History, Settings, LogOut, Menu, ClipboardList, Map as MapIcon, Clock, Loader2 } from 'lucide-react'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Inventario from './pages/Inventario'
@@ -8,38 +8,35 @@ import Historial from './pages/Historial'
 import Movimientos from './pages/Movimientos'
 import Solicitudes from './pages/Solicitudes'
 import InventarioMapa from './pages/InventarioMapa'
+import Configuracion from './pages/Configuracion'
+import DialogosProvider from './components/ui/DialogosProvider'
+import { suscribirConexion, estaConectando } from './lib/conexion'
+import { formatearFecha, formatearHora } from './lib/formato'
 import logoBab from './assets/logo-bab.png'
 
-function NavItem({ to, icon: Icon, label, isExpanded }) {
-  const location = useLocation();
-  const isActive = location.pathname === to;
+const NOMBRE_APP = 'SMI-ControlBAB'
 
-  return (
-    <Link to={to} style={{ 
-      display: 'flex', alignItems: 'center', justifyContent: isExpanded ? 'flex-start' : 'center',
-      color: isActive ? '#E31837' : 'white', textDecoration: 'none', fontSize: '15px', 
-      padding: '12px 15px', borderRadius: '4px', 
-      backgroundColor: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
-      borderLeft: isActive ? '4px solid #E31837' : '4px solid transparent',
-      fontWeight: isActive ? 'bold' : 'normal', transition: 'all 0.2s ease',
-      marginBottom: '5px', whiteSpace: 'nowrap', overflow: 'hidden'
-    }}>
-      <Icon size={20} style={{ minWidth: '20px', marginRight: isExpanded ? '15px' : '0' }} />
-      {isExpanded && <span>{label}</span>}
-    </Link>
-  );
-}
+// Menú lateral y título de la pestaña de cada ruta
+const RUTAS = [
+  { ruta: '/', icono: LayoutDashboard, etiqueta: 'Dashboard', titulo: 'Panel Principal' },
+  { ruta: '/movimientos', icono: ArrowRightLeft, etiqueta: 'Ingresos y Retiros', titulo: 'Ingresos y Retiros' },
+  { ruta: '/solicitudes', icono: ClipboardList, etiqueta: 'Solicitudes SBO', titulo: 'Solicitudes SBO' },
+  { ruta: '/inventario', icono: PackageSearch, etiqueta: 'Inventario Maestro', titulo: 'Inventario Maestro' },
+  { ruta: '/inventario-mapa', icono: MapIcon, etiqueta: 'Mapa de Bodega', titulo: 'Mapa de Bodega' },
+  { ruta: '/historial', icono: History, etiqueta: 'Historial', titulo: 'Historial de Movimientos' },
+  { ruta: '/parametros', icono: Settings, etiqueta: 'Configuración', titulo: 'Configuración' }
+]
 
 // La sesión se guarda en sessionStorage: sobrevive a un refresco de página
 // y se cierra al cerrar la pestaña del navegador
 const CLAVE_SESION = 'smi-usuario'
+const CLAVE_MENU = 'smi-menu-colapsado'
 
-function leerSesion() {
-  try {
-    return sessionStorage.getItem(CLAVE_SESION)
-  } catch {
-    return null
-  }
+// Mismo corte que la media query de index.css
+const esAngosta = () => window.matchMedia('(max-width: 760px)').matches
+
+function leer(almacen, clave) {
+  try { return almacen.getItem(clave) } catch { return null }
 }
 
 function guardarSesion(usuario) {
@@ -51,66 +48,134 @@ function guardarSesion(usuario) {
   }
 }
 
-function App() {
-  const [currentUser, setCurrentUserState] = useState(leerSesion)
-  const [isExpanded, setIsExpanded] = useState(true)
+function NavItem({ to, icono: Icono, etiqueta, expandido, onNavegar }) {
+  const { pathname } = useLocation()
+  const activo = pathname === to
+  return (
+    <Link to={to} className={`nav-item ${activo ? 'activo' : ''}`} aria-current={activo ? 'page' : undefined} title={expandido ? undefined : etiqueta} onClick={onNavegar}>
+      <Icono size={20} aria-hidden="true" />
+      {expandido && <span>{etiqueta}</span>}
+    </Link>
+  )
+}
 
-  const setCurrentUser = (usuario) => {
-    guardarSesion(usuario)
-    setCurrentUserState(usuario)
+// Pone "Página · SMI-ControlBAB" en la pestaña del navegador
+function TituloPestana() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const ruta = RUTAS.find(r => r.ruta === pathname)
+    document.title = ruta ? `${ruta.titulo} · ${NOMBRE_APP}` : NOMBRE_APP
+  }, [pathname])
+  return null
+}
+
+function Reloj() {
+  const [ahora, setAhora] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 15000)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <span className="topbar__hora" title="Hora de Bogotá">
+      <Clock size={14} aria-hidden="true" /> {formatearFecha(ahora)} · {formatearHora(ahora)}
+    </span>
+  )
+}
+
+function BannerConexion() {
+  const conectando = useSyncExternalStore(suscribirConexion, estaConectando)
+  if (!conectando) return null
+  return (
+    <div className="banner-conexion" role="status">
+      <Loader2 size={16} className="girando" aria-hidden="true" />
+      Conectando con el servidor… si estaba inactivo puede tardar hasta un minuto. Reintentando automáticamente.
+    </div>
+  )
+}
+
+function App() {
+  const [usuario, setUsuarioEstado] = useState(() => leer(sessionStorage, CLAVE_SESION))
+  // En celular el menú arranca contraído; en pantallas grandes se recuerda la preferencia
+  const [expandido, setExpandido] = useState(() =>
+    !esAngosta() && (leer(localStorage, CLAVE_MENU) === null ? window.innerWidth > 900 : leer(localStorage, CLAVE_MENU) !== '1'))
+
+  const setUsuario = (nuevo) => {
+    guardarSesion(nuevo)
+    setUsuarioEstado(nuevo)
   }
 
-  if (!currentUser) {
-    return <Login onLogin={(usuario) => setCurrentUser(usuario)} />
+  const alternarMenu = () => {
+    setExpandido(!expandido)
+    if (esAngosta()) return
+    try { localStorage.setItem(CLAVE_MENU, expandido ? '1' : '0') } catch { /* sin almacenamiento */ }
+  }
+
+  // En celular el menú se superpone al contenido: se cierra al elegir una opción
+  const alNavegar = () => { if (esAngosta()) setExpandido(false) }
+
+  if (!usuario) {
+    return (
+      <DialogosProvider>
+        <Login onLogin={setUsuario} />
+      </DialogosProvider>
+    )
   }
 
   return (
     <BrowserRouter>
-      <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui' }}>
-        
-        {/* Menú Lateral con fondo Azul Oscuro */}
-        <div style={{ width: isExpanded ? '250px' : '70px', backgroundColor: '#0f223e', color: 'white', padding: '20px 10px', display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease' }}>
-          
-          <button onClick={() => setIsExpanded(!isExpanded)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', marginBottom: '20px', display: 'flex', justifyContent: isExpanded ? 'flex-end' : 'center' }}>
-            <Menu size={24} />
-          </button>
+      <DialogosProvider>
+        <TituloPestana />
+        <a href="#contenido" className="saltar">Saltar al contenido</a>
+        <div className="app">
+          <aside className={`sidebar ${expandido ? '' : 'colapsada'}`}>
+            <button className="sidebar__toggle" onClick={alternarMenu} aria-label={expandido ? 'Contraer menú' : 'Expandir menú'} aria-expanded={expandido}>
+              <Menu size={22} />
+            </button>
 
-          <Link to="/" style={{ textAlign: 'center', paddingBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px', textDecoration: 'none', display: 'block' }}>
-            <img src={logoBab} alt="Logo BAB" style={{ maxHeight: isExpanded ? '45px' : '25px', width: 'auto', objectFit: 'contain', marginBottom: '10px', transition: 'all 0.3s ease' }} />
-            {isExpanded && <h2 style={{ margin: 0, color: 'white', fontSize: '18px' }}>SMI - ControlBAB</h2>}
-          </Link>
-          
-          <nav style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-            <NavItem to="/" icon={LayoutDashboard} label="Dashboard" isExpanded={isExpanded} />
-            <NavItem to="/movimientos" icon={ArrowRightLeft} label="Ingresos y Retiros" isExpanded={isExpanded} />
-            <NavItem to="/solicitudes" icon={ClipboardList} label="Solicitudes SBO" isExpanded={isExpanded} />
-            <NavItem to="/inventario" icon={PackageSearch} label="Inventario Maestro" isExpanded={isExpanded} />
-            <NavItem to="/inventario-mapa" icon={MapIcon} label="Mapa de Bodega" isExpanded={isExpanded} />
-            <NavItem to="/historial" icon={History} label="Historial" isExpanded={isExpanded} />
-            <NavItem to="/parametros" icon={Settings} label="Configuración" isExpanded={isExpanded} />
-          </nav>
+            <Link to="/" className="sidebar__marca">
+              <img src={logoBab} alt="Banco de Alimentos de Bogotá" />
+              {expandido && <div className="sidebar__nombre">{NOMBRE_APP}</div>}
+            </Link>
 
-          <button onClick={() => setCurrentUser(null)} style={{ padding: '12px', backgroundColor: 'transparent', color: '#ff8a8a', border: '1px solid #ff8a8a', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-            <LogOut size={20} style={{ marginRight: isExpanded ? '10px' : '0' }} />
-            {isExpanded && <span>Cerrar Sesión</span>}
-          </button>
+            <nav aria-label="Menú principal">
+              {RUTAS.map(r => <NavItem key={r.ruta} to={r.ruta} icono={r.icono} etiqueta={r.etiqueta} expandido={expandido} onNavegar={alNavegar} />)}
+            </nav>
+
+            <button className="sidebar__salir" onClick={() => setUsuario(null)} title="Cerrar sesión">
+              <LogOut size={18} aria-hidden="true" />
+              {expandido && <span>Cerrar Sesión</span>}
+            </button>
+          </aside>
+
+          <div className="principal">
+            <header className="topbar">
+              <Reloj />
+              <span className="topbar__usuario">
+                <span className="topbar__avatar" aria-hidden="true">{usuario.slice(0, 1).toUpperCase()}</span>
+                <span>
+                  <strong>{usuario}</strong>
+                  {/* El rol real llega con la Fase B (usuarios y roles) */}
+                  <span className="topbar__rol"> · Operario</span>
+                </span>
+              </span>
+            </header>
+            <BannerConexion />
+
+            <main id="contenido" className="contenido">
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/movimientos" element={<Movimientos usuarioActual={usuario} />} />
+                <Route path="/solicitudes" element={<Solicitudes usuarioActual={usuario} />} />
+                <Route path="/inventario" element={<Inventario usuarioActual={usuario} />} />
+                <Route path="/inventario-mapa" element={<InventarioMapa />} />
+                <Route path="/historial" element={<Historial />} />
+                <Route path="/parametros" element={<Configuracion />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </main>
+          </div>
         </div>
-
-        {/* Contenedor Principal con el nuevo fondo azul */}
-        <div style={{ flex: 1, padding: '30px', backgroundColor: '#152e52', overflowY: 'auto' }}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/movimientos" element={<Movimientos usuarioActual={currentUser} />} />
-            <Route path="/solicitudes" element={<Solicitudes usuarioActual={currentUser} />} />
-            <Route path="/inventario" element={<Inventario usuarioActual={currentUser} />} />
-            <Route path="/inventario-mapa" element={<InventarioMapa />} />
-            <Route path="/historial" element={<Historial />} />
-            <Route path="/parametros" element={<h2>⚙️ Configuración y Parámetros</h2>} /> 
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
-
-      </div>
+      </DialogosProvider>
     </BrowserRouter>
   )
 }
