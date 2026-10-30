@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, ArrowRightLeft, PackageSearch, History, Settings, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, ArrowRightLeft, PackageSearch, History, Settings, LogOut, Menu, ClipboardList, Map as MapIcon } from 'lucide-react'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Inventario from './pages/Inventario'
 import Historial from './pages/Historial'
 import Movimientos from './pages/Movimientos'
+import Solicitudes from './pages/Solicitudes'
+import InventarioMapa from './pages/InventarioMapa'
 import logoBab from './assets/logo-bab.png'
 
 function NavItem({ to, icon: Icon, label, isExpanded }) {
@@ -55,7 +57,9 @@ function App() {
           <nav style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
             <NavItem to="/" icon={LayoutDashboard} label="Dashboard" isExpanded={isExpanded} />
             <NavItem to="/movimientos" icon={ArrowRightLeft} label="Ingresos y Retiros" isExpanded={isExpanded} />
+            <NavItem to="/solicitudes" icon={ClipboardList} label="Solicitudes SBO" isExpanded={isExpanded} />
             <NavItem to="/inventario" icon={PackageSearch} label="Inventario Maestro" isExpanded={isExpanded} />
+            <NavItem to="/inventario-mapa" icon={MapIcon} label="Mapa de Bodega" isExpanded={isExpanded} />
             <NavItem to="/historial" icon={History} label="Historial" isExpanded={isExpanded} />
             <NavItem to="/parametros" icon={Settings} label="Configuración" isExpanded={isExpanded} />
           </nav>
@@ -71,7 +75,9 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/movimientos" element={<Movimientos usuarioActual={currentUser} />} />
+            <Route path="/solicitudes" element={<Solicitudes usuarioActual={currentUser} />} />
             <Route path="/inventario" element={<Inventario usuarioActual={currentUser} />} />
+            <Route path="/inventario-mapa" element={<InventarioMapa />} />
             <Route path="/historial" element={<Historial />} />
             <Route path="/parametros" element={<h2>⚙️ Configuración y Parámetros</h2>} /> 
             <Route path="*" element={<Navigate to="/" />} />

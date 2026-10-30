@@ -16,11 +16,23 @@ export default function Movimientos({ usuarioActual }) {
     e.preventDefault()
     
     // 1. Guardar en inventario
-    await fetch('https://smi-backend-r3ac.onrender.com/api/productos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formIngreso, cantidad: parseInt(formIngreso.cantidad) })
-    })
+    try {
+      const response = await fetch('https://smi-backend-r3ac.onrender.com/api/productos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formIngreso, cantidad: parseInt(formIngreso.cantidad) })
+      })
+
+      // Si el backend rechaza el ingreso (ej: código duplicado), no se registra en el historial
+      if (!response.ok) {
+        const data = await response.json()
+        alert(`❌ Error: ${data.error}`)
+        return
+      }
+    } catch {
+      alert("❌ Error de conexión con el servidor.")
+      return
+    }
 
     // 2. Reporte al Historial
     await fetch('https://smi-backend-r3ac.onrender.com/api/historial', {
@@ -65,7 +77,7 @@ export default function Movimientos({ usuarioActual }) {
       alert(`✅ ¡Salida registrada exitosamente por ${usuarioActual}!`);
       setFormSalida({ codigo_producto: '', motivo: '', cantidad: '' });
 
-    } catch (error) {
+    } catch {
       alert("❌ Error de conexión con el servidor.");
     }
   }
