@@ -1,7 +1,5 @@
-import { useState, useRef } from 'react'
-import { ArrowRightLeft, ScanBarcode } from 'lucide-react'
-import useScanner from '../hooks/useScanner'
-import { API_URL } from '../api'
+import { useState } from 'react'
+import { ArrowRightLeft } from 'lucide-react'
 
 export default function Movimientos({ usuarioActual }) {
   // Estado para el formulario de Ingreso
@@ -12,31 +10,6 @@ export default function Movimientos({ usuarioActual }) {
   // Estado para el formulario de Salida
   const [formSalida, setFormSalida] = useState({
     codigo_producto: '', motivo: '', cantidad: ''
-  })
-
-  // Último código leído con el escáner USB y a qué formulario se envió
-  const [ultimoEscaneo, setUltimoEscaneo] = useState(null)
-  const descripcionIngresoRef = useRef(null)
-  const motivoSalidaRef = useRef(null)
-
-  // Si el producto ya existe se prepara una salida; si no, un ingreso nuevo
-  useScanner(async (codigo) => {
-    let existe = false
-    try {
-      const productos = await fetch(`${API_URL}/api/productos`).then(res => res.json())
-      existe = Array.isArray(productos) && productos.some(p => p.codigo_producto === codigo)
-    } catch {
-      // Sin conexión: se asume ingreso y el backend validará al registrar
-    }
-
-    if (existe) {
-      setFormSalida(form => ({ ...form, codigo_producto: codigo }))
-      motivoSalidaRef.current?.focus()
-    } else {
-      setFormIngreso(form => ({ ...form, codigo_producto: codigo }))
-      descripcionIngresoRef.current?.focus()
-    }
-    setUltimoEscaneo({ codigo, destino: existe ? 'Salida / Retiro' : 'Nuevo Ingreso' })
   })
 
   const registrarIngreso = async (e) => {
@@ -115,14 +88,6 @@ export default function Movimientos({ usuarioActual }) {
         <ArrowRightLeft size={36} color="#E31837" />
         <h1 style={{ margin: 0 }}>Gestión de Ingresos y Retiros</h1>
       </div>
-
-      {/* ESTADO DEL ESCÁNER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', padding: '12px 16px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.08)', color: '#cbd5e1', fontSize: '14px' }}>
-        <ScanBarcode size={20} color={ultimoEscaneo ? '#10b981' : '#cbd5e1'} />
-        {ultimoEscaneo
-          ? <span>Último escaneo: <b style={{ color: 'white' }}>{ultimoEscaneo.codigo}</b> → {ultimoEscaneo.destino}</span>
-          : <span>Escáner listo: lea un código de barras para llenar el formulario automáticamente.</span>}
-      </div>
       
       {/* SECCIÓN DE INGRESOS */}
       <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', marginBottom: '30px' }}>
@@ -137,7 +102,7 @@ export default function Movimientos({ usuarioActual }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexGrow: 2 }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>Descripción del Artículo</label>
-            <input ref={descripcionIngresoRef} placeholder="Ej: Cobijas térmicas donadas" value={formIngreso.descripcion} onChange={e => setFormIngreso({...formIngreso, descripcion: e.target.value})} required style={{ padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}/>
+            <input placeholder="Ej: Cobijas térmicas donadas" value={formIngreso.descripcion} onChange={e => setFormIngreso({...formIngreso, descripcion: e.target.value})} required style={{ padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}/>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexGrow: 1 }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>Categoría</label>
@@ -167,7 +132,7 @@ export default function Movimientos({ usuarioActual }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexGrow: 2 }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>Motivo de la Salida / Destino</label>
-            <input ref={motivoSalidaRef} placeholder="Ej: Entrega a Fundación XYZ" value={formSalida.motivo} onChange={e => setFormSalida({...formSalida, motivo: e.target.value})} required style={{ padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}/>
+            <input placeholder="Ej: Entrega a Fundación XYZ" value={formSalida.motivo} onChange={e => setFormSalida({...formSalida, motivo: e.target.value})} required style={{ padding: '12px', borderRadius: '4px', border: '1px solid #cbd5e1' }}/>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '120px' }}>
             <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b' }}>Cantidad</label>

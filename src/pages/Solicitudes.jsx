@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ClipboardList, Plus, Trash2, X, ScanBarcode } from 'lucide-react'
+import { ClipboardList, Plus, Trash2, X } from 'lucide-react'
 import { API_URL } from '../api'
-import useScanner from '../hooks/useScanner'
 
 const ESTADOS = ['CREADA', 'APROBADA', 'EN_ALISTAMIENTO', 'ALISTADA', 'DESPACHADA', 'CANCELADA']
 
@@ -65,21 +64,6 @@ export default function Solicitudes({ usuarioActual }) {
       .then(res => res.json())
       .then(data => setProductos(data))
   }, [])
-
-  // Cada lectura del escáner agrega el producto a la nueva solicitud (o suma 1 si ya está)
-  useScanner((codigo) => {
-    setForm(f => {
-      const existente = f.items.findIndex(item => item.codigo_producto === codigo)
-      if (existente >= 0) {
-        const items = f.items.map((item, i) => i === existente ? { ...item, cantidad_solicitada: String((parseInt(item.cantidad_solicitada) || 0) + 1) } : item)
-        return { ...f, items }
-      }
-      const vacia = f.items.findIndex(item => !item.codigo_producto)
-      const nuevo = { codigo_producto: codigo, cantidad_solicitada: '1' }
-      const items = vacia >= 0 ? f.items.map((item, i) => i === vacia ? nuevo : item) : [...f.items, nuevo]
-      return { ...f, items }
-    })
-  })
 
   const abrirDetalle = async (id) => {
     const response = await fetch(`${API_URL}/api/solicitudes/${id}`)
@@ -155,12 +139,7 @@ export default function Solicitudes({ usuarioActual }) {
 
       {/* NUEVA SOLICITUD */}
       <div style={estiloTarjeta}>
-        <h2 style={{ ...estiloTitulo, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>📝 Nueva Solicitud</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 'normal', color: '#64748b' }}>
-            <ScanBarcode size={18} /> Escanee productos para agregarlos
-          </span>
-        </h2>
+        <h2 style={estiloTitulo}>📝 Nueva Solicitud</h2>
 
         <datalist id="codigos-productos">
           {productos.map(p => <option key={p.id} value={p.codigo_producto}>{p.descripcion} ({p.cantidad} disp.)</option>)}
