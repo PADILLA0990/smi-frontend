@@ -167,6 +167,9 @@ p { margin: 0; }
 .campo--angosto { flex: 0 0 130px; }
 .campo--ancho { flex: 2 1 260px; }
 .campo--completo { flex-basis: 100%; }
+/* En formularios verticales los campos no se estiran (flex-basis sería alto, no ancho) */
+.form-columna { display: flex; flex-direction: column; gap: 14px; }
+.form-columna .campo, .login form .campo { flex: none; }
 .campo label, .etiqueta { font-size: var(--fs-sm); font-weight: 600; color: var(--texto-suave); }
 .campo__ayuda { font-size: var(--fs-xs); color: var(--texto-suave); }
 .campo__ayuda--aviso { color: var(--aviso); }
@@ -359,3 +362,29 @@ p { margin: 0; }
   .card { padding: 16px; }
   .topbar__rol { display: none; }
 }
+
+/* ---------- Sesión y usuarios (Fase B) ---------- */
+.aviso-info {
+  display: flex; align-items: center; gap: 10px;
+  background: #dbeafe; color: #1e40af; padding: 12px 16px; border-radius: var(--radio);
+}
+.password-temporal {
+  flex: 1; font-family: ui-monospace, Consolas, monospace; font-size: var(--fs-lg); letter-spacing: 1px;
+  background: var(--superficie-suave); border: 1px dashed var(--borde-campo); border-radius: var(--radio-sm);
+  padding: 10px 14px; color: var(--texto); user-select: all;
+}
+.menu-usuario { position: relative; }
+.menu-usuario summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--texto-sobre-navy); padding: 4px 6px; border-radius: var(--radio-sm); }
+.menu-usuario summary::-webkit-details-marker { display: none; }
+.menu-usuario summary:hover { background: rgba(255,255,255,.08); }
+.menu-usuario__lista {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 45; min-width: 220px;
+  background: var(--superficie); color: var(--texto); border-radius: var(--radio-sm); box-shadow: var(--sombra); padding: 6px;
+}
+.menu-usuario__lista button {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: none; background: none;
+  font: inherit; color: var(--texto); border-radius: 4px; cursor: pointer; text-align: left;
+}
+.menu-usuario__lista button:hover { background: var(--superficie-suave); }
+.menu-usuario__info { padding: 8px 10px 10px; border-bottom: 1px solid var(--linea); margin-bottom: 4px; font-size: var(--fs-sm); color: var(--texto-suave); }
+.menu-usuario__info strong { display: block; color: var(--texto); font-size: var(--fs-base); }

@@ -9,6 +9,7 @@ import Badge from '../components/ui/Badge'
 import ErrorState from '../components/ui/ErrorState'
 import SelectBuscable from '../components/ui/SelectBuscable'
 import { useConfirmar, useAvisar } from '../lib/dialogos'
+import { useSesion, usePuede } from '../lib/auth'
 import { TONO_ESTADO_SBO, ETIQUETA_ESTADO_SBO } from '../lib/tonos'
 import { formatearFecha, formatearFechaHora, formatearFechaCalendario, formatearNumero } from '../lib/formato'
 
@@ -22,23 +23,24 @@ const ACCIONES = {
   cancelar:  { label: 'Cancelar solicitud',     clase: 'btn--peligro' }
 }
 
-// Usuarios disponibles como alistadores (los mismos del login)
-const ALISTADORES = ['Operario01', 'Operario02']
-
 const ITEM_VACIO = { codigo_producto: '', cantidad_solicitada: '' }
 const FORM_VACIO = { codigo_sbo: '', beneficiario: '', fecha_requerida: '', observaciones: '', items: [ITEM_VACIO] }
 
 const BadgeEstado = ({ estado }) => <Badge tono={TONO_ESTADO_SBO[estado]}>{ETIQUETA_ESTADO_SBO[estado]}</Badge>
 const libre = (p) => p.cantidad - (p.cantidad_reservada || 0)
 
-export default function Solicitudes({ usuarioActual }) {
+export default function Solicitudes() {
+  const { usuario } = useSesion()
+  const puede = usePuede()
   const [solicitudes, setSolicitudes] = useState(null)
   const [error, setError] = useState('')
   const [productos, setProductos] = useState([])
   const [filtro, setFiltro] = useState('')
   const [form, setForm] = useState(FORM_VACIO)
   const [detalle, setDetalle] = useState(null)
-  const [alistador, setAlistador] = useState(ALISTADORES[0])
+  // Operarios y coordinadores activos, desde la API
+  const [alistadores, setAlistadores] = useState([])
+  const [alistador, setAlistador] = useState('')
   const [cantidades, setCantidades] = useState({})
   const [ocupado, setOcupado] = useState(false)
   const confirmar = useConfirmar()
@@ -56,6 +58,12 @@ export default function Solicitudes({ usuarioActual }) {
   // Solo alimenta el autocompletado de códigos: si falla, el formulario sigue funcionando
   const cargarProductos = useCallback(() => pedirJSON('/api/productos').then(setProductos).catch(() => setProductos([])), [])
   useEffect(() => { cargarProductos() }, [cargarProductos])
+
+  useEffect(() => {
+    pedirJSON('/api/usuarios/alistadores')
+      .then(lista => { setAlistadores(lista); setAlistador(actual => actual || lista[0]?.usuario || '') })
+      .catch(() => setAlistadores([]))
+  }, [])
 
   const opcionesProductos = productos.map(p => ({ valor: p.codigo_producto, etiqueta: p.descripcion, detalle: `libre ${formatearNumero(libre(p))}` }))
 
@@ -81,12 +89,11 @@ export default function Solicitudes({ usuarioActual }) {
         method: 'POST',
         body: {
           ...form,
-          creado_por: usuarioActual,
           fecha_requerida: form.fecha_requerida || null,
           items: form.items.map(item => ({ ...item, cantidad_solicitada: parseInt(item.cantidad_solicitada) }))
         }
       })
-      avisar(`Solicitud ${data.codigo_sbo} creada por ${usuarioActual}.`)
+      avisar(`Solicitud ${data.codigo_sbo} creada por ${usuario.usuario}.`)
       setForm(FORM_VACIO)
       cargarSolicitudes()
     } catch (err) {
@@ -114,7 +121,6 @@ export default function Solicitudes({ usuarioActual }) {
         method: 'POST',
         body: {
           accion,
-          usuario: usuarioActual,
           alistador: accion === 'iniciar' ? alistador : undefined,
           cantidades: accion === 'finalizar' ? Object.fromEntries(Object.entries(cantidades).map(([id, n]) => [id, parseInt(n)])) : undefined
         }
@@ -146,7 +152,7 @@ export default function Solicitudes({ usuarioActual }) {
 
       <ErrorState mensaje={error} onReintentar={() => { setError(''); cargarSolicitudes() }} />
 
-      <Card titulo="Nueva solicitud" icono={FilePlus2}>
+      {puede('sbo:crear') && <Card titulo="Nueva solicitud" icono={FilePlus2}>
         <form onSubmit={crearSolicitud}>
           <div className="form-fila" style={{ marginBottom: 18 }}>
             <Campo etiqueta="Código SBO">
@@ -199,7 +205,7 @@ export default function Solicitudes({ usuarioActual }) {
             <button type="submit" className="btn btn--exito" disabled={ocupado}>Crear solicitud</button>
           </div>
         </form>
-      </Card>
+      </Card>}
 
       {detalle && (
         <Card
@@ -242,7 +248,8 @@ export default function Solicitudes({ usuarioActual }) {
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 20 }}>
               {detalle.acciones.includes('iniciar') && (
                 <select className="select" style={{ width: 'auto' }} value={alistador} onChange={e => setAlistador(e.target.value)} aria-label="Alistador">
-                  {ALISTADORES.map(a => <option key={a} value={a}>Alistador: {a}</option>)}
+                  {alistadores.length === 0 && <option value="">No hay alistadores activos</option>}
+                  {alistadores.map(a => <option key={a.usuario} value={a.usuario}>Alistador: {a.nombre} ({a.usuario})</option>)}
                 </select>
               )}
               {detalle.acciones.map(accion => (

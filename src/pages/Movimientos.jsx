@@ -6,6 +6,7 @@ import Card from '../components/ui/Card'
 import Campo from '../components/ui/Campo'
 import SelectBuscable from '../components/ui/SelectBuscable'
 import { useAvisar } from '../lib/dialogos'
+import { useSesion } from '../lib/auth'
 import { formatearNumero } from '../lib/formato'
 
 const FORM_INGRESO_VACIO = { codigo_producto: '', descripcion: '', categoria: '', cantidad: '', estado: 'Bueno', ubicacion_general: 'Recepción' }
@@ -13,7 +14,8 @@ const FORM_SALIDA_VACIO = { codigo_producto: '', motivo: '', cantidad: '' }
 
 const libre = (p) => p.cantidad - (p.cantidad_reservada || 0)
 
-export default function Movimientos({ usuarioActual }) {
+export default function Movimientos() {
+  const { usuario } = useSesion()
   const [formIngreso, setFormIngreso] = useState(FORM_INGRESO_VACIO)
   const [formSalida, setFormSalida] = useState(FORM_SALIDA_VACIO)
   const [productos, setProductos] = useState([])
@@ -37,11 +39,11 @@ export default function Movimientos({ usuarioActual }) {
     try {
       const { producto, adicional } = await pedirJSON('/api/productos', {
         method: 'POST',
-        body: { ...formIngreso, cantidad: parseInt(formIngreso.cantidad), operario: usuarioActual }
+        body: { ...formIngreso, cantidad: parseInt(formIngreso.cantidad) }
       })
       avisar(adicional
         ? `${producto.codigo_producto} ya existía: se sumaron ${formatearNumero(Number(formIngreso.cantidad))} unidades (stock total: ${formatearNumero(producto.cantidad)}).`
-        : `Ingreso de ${producto.codigo_producto} registrado por ${usuarioActual}.`)
+        : `Ingreso de ${producto.codigo_producto} registrado por ${usuario.usuario}.`)
       setFormIngreso(FORM_INGRESO_VACIO)
       cargarProductos()
     } catch (err) {
@@ -60,8 +62,7 @@ export default function Movimientos({ usuarioActual }) {
         body: {
           codigo_producto: formSalida.codigo_producto,
           cantidad_retirada: parseInt(formSalida.cantidad),
-          motivo: formSalida.motivo,
-          operario: usuarioActual
+          motivo: formSalida.motivo
         }
       })
       avisar(`Salida de ${formatearNumero(Number(formSalida.cantidad))} unidades de ${formSalida.codigo_producto} registrada.` +

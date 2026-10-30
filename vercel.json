@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/:ruta*", "destination": "https://smi-backend-r3ac.onrender.com/api/:ruta*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

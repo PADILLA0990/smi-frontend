@@ -7,9 +7,11 @@ import DataTable from '../components/ui/DataTable'
 import Badge from '../components/ui/Badge'
 import ErrorState from '../components/ui/ErrorState'
 import { useConfirmar, useAvisar } from '../lib/dialogos'
+import { usePuede } from '../lib/auth'
 import { formatearNumero, formatearFecha } from '../lib/formato'
 
-export default function Inventario({ usuarioActual }) {
+export default function Inventario() {
+  const puede = usePuede()
   const [productos, setProductos] = useState(null)
   const [error, setError] = useState('')
   const confirmar = useConfirmar()
@@ -37,7 +39,7 @@ export default function Inventario({ usuarioActual }) {
     try {
       await pedirJSON(`/api/productos/${prod.id}`, {
         method: 'PUT',
-        body: { ubicacion_general: 'Almacenamiento', codigo_estanteria: nuevaEstanteria, operario: usuarioActual }
+        body: { ubicacion_general: 'Almacenamiento', codigo_estanteria: nuevaEstanteria }
       })
       avisar(`${prod.codigo_producto} reubicado en ${nuevaEstanteria}.`)
       cargarInventario()
@@ -56,7 +58,7 @@ export default function Inventario({ usuarioActual }) {
     if (!ok) return
 
     try {
-      await pedirJSON(`/api/productos/${prod.id}`, { method: 'DELETE', body: { operario: usuarioActual } })
+      await pedirJSON(`/api/productos/${prod.id}`, { method: 'DELETE' })
       avisar(`${prod.codigo_producto} eliminado del inventario.`)
       cargarInventario()
     } catch (err) {
@@ -89,20 +91,22 @@ export default function Inventario({ usuarioActual }) {
       )
     },
     { id: 'fecha_ingreso', titulo: 'Ingreso', oculta: true, valor: p => p.fecha_ingreso, render: p => formatearFecha(p.fecha_ingreso) },
-    {
+    (puede('productos:reubicar') || puede('productos:eliminar')) && {
       id: 'acciones', titulo: 'Acciones', fija: true, ordenable: false, alinear: 'centro', valor: () => '',
       render: p => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-          <button className="btn btn--primario btn--sm" onClick={() => moverProducto(p)}>
-            <MapPin size={14} aria-hidden="true" /> Reubicar
-          </button>
-          <button className="btn btn--secundario btn--sm" style={{ color: 'var(--peligro)' }} onClick={() => eliminarProducto(p)} aria-label={`Eliminar ${p.codigo_producto}`} title="Eliminar producto">
+          {puede('productos:reubicar') && (
+            <button className="btn btn--primario btn--sm" onClick={() => moverProducto(p)}>
+              <MapPin size={14} aria-hidden="true" /> Reubicar
+            </button>
+          )}
+          {puede('productos:eliminar') && <button className="btn btn--secundario btn--sm" style={{ color: 'var(--peligro)' }} onClick={() => eliminarProducto(p)} aria-label={`Eliminar ${p.codigo_producto}`} title="Eliminar producto">
             <Trash2 size={16} />
-          </button>
+          </button>}
         </div>
       )
     }
-  ]
+  ].filter(Boolean)
 
   return (
     <div>
