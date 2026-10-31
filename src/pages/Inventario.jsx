@@ -154,7 +154,10 @@ function ModalKardex({ producto, opciones, onCerrar }) {
                   <td className="texto-sm texto-suave">{formatearFechaHora(m.fecha)}</td>
                   <td><Badge tono={tonoAccion(m.accion)}>{m.accion}</Badge></td>
                   <td>{m.operario}</td>
-                  <td className="texto-suave">{m.detalles || '—'}</td>
+                  <td className="texto-suave">
+                    {m.documento && <><Link className="texto-codigo enlace" to={`/documentos/${m.documento.id}`} title="Ver el comprobante">{m.documento.numero}</Link>{' · '}</>}
+                    {m.detalles || '—'}
+                  </td>
                   <td className="num"><strong>{formatearNumero(m.saldo)}</strong></td>
                 </tr>
               ))}

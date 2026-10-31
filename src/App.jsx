@@ -9,6 +9,7 @@ import Movimientos from './pages/Movimientos'
 import Solicitudes from './pages/Solicitudes'
 import InventarioMapa from './pages/InventarioMapa'
 import Configuracion from './pages/Configuracion'
+import Comprobante from './pages/Comprobante'
 import UsuariosPagina from './pages/Usuarios'
 import CambiarPassword from './pages/CambiarPassword'
 import Modal from './components/ui/Modal'
@@ -188,6 +189,7 @@ function App() {
               <Route path="/inventario" element={<Inventario />} />
               <Route path="/inventario-mapa" element={<InventarioMapa />} />
               <Route path="/historial" element={<Historial />} />
+              <Route path="/documentos/:ref" element={<Comprobante />} />
               <Route path="/usuarios" element={<Protegida permiso="usuarios:gestionar"><UsuariosPagina /></Protegida>} />
               <Route path="/parametros" element={<Configuracion />} />
               <Route path="*" element={<Navigate to="/" />} />

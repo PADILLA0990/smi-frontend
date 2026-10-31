@@ -32,7 +32,14 @@ const columnas = [
     id: 'sbo', titulo: 'SBO', ordenable: false,
     render: r => r.sbo ? <Link className="texto-codigo enlace" to={`/historial?sbo=${encodeURIComponent(r.sbo)}`} title="Ver todos los movimientos de esta SBO">{r.sbo}</Link> : <span className="texto-suave">—</span>
   },
-  { id: 'detalles', titulo: 'Detalles', ordenable: false, render: r => <span className="texto-suave">{r.detalles || '—'}</span> }
+  {
+    id: 'detalles', titulo: 'Detalles', ordenable: false,
+    // Los movimientos de un documento (Fase D2) enlazan a su comprobante
+    render: r => <span className="texto-suave">
+      {r.documento && <><Link className="texto-codigo enlace" to={`/documentos/${r.documento.id}`} title="Ver el comprobante">{r.documento.numero}</Link>{' · '}</>}
+      {r.detalles || '—'}
+    </span>
+  }
 ]
 
 export default function Historial() {
