@@ -10,6 +10,7 @@ import ErrorState from '../components/ui/ErrorState'
 import SelectBuscable from '../components/ui/SelectBuscable'
 import { useConfirmar, useAvisar } from '../lib/dialogos'
 import { useSesion, usePuede } from '../lib/auth'
+import { useLista } from '../lib/catalogos'
 import { TONO_ESTADO_SBO, ETIQUETA_ESTADO_SBO } from '../lib/tonos'
 import { formatearFecha, formatearFechaHora, formatearFechaCalendario, formatearNumero } from '../lib/formato'
 
@@ -64,6 +65,10 @@ export default function Solicitudes() {
       .then(lista => { setAlistadores(lista); setAlistador(actual => actual || lista[0]?.usuario || '') })
       .catch(() => setAlistadores([]))
   }, [])
+
+  // Organizaciones beneficiarias activas del catálogo
+  const organizaciones = useLista('/api/catalogos/organizaciones?activos=1').datos || []
+  const opcionesOrganizaciones = organizaciones.map(o => ({ valor: o.nombre, etiqueta: o.localidad || o.contacto || '', detalle: o.nit ? `NIT ${o.nit}` : undefined }))
 
   const opcionesProductos = productos.map(p => ({ valor: p.codigo_producto, etiqueta: p.descripcion, detalle: `libre ${formatearNumero(libre(p))}` }))
 
@@ -158,8 +163,15 @@ export default function Solicitudes() {
             <Campo etiqueta="Código SBO">
               <input className="input" placeholder="Ej: SBO-2026-001" value={form.codigo_sbo} onChange={e => setForm({ ...form, codigo_sbo: e.target.value })} required />
             </Campo>
-            <Campo etiqueta="Beneficiario / organización" tamano="ancho">
-              <input className="input" placeholder="Ej: Fundación XYZ" value={form.beneficiario} onChange={e => setForm({ ...form, beneficiario: e.target.value })} required />
+            <Campo etiqueta="Organización beneficiaria" tamano="ancho">
+              <SelectBuscable
+                opciones={opcionesOrganizaciones}
+                valor={form.beneficiario}
+                required
+                placeholder="Buscar organización"
+                mensajeVacio="No está en el catálogo: pida que la agreguen en Configuración"
+                onChange={nombre => setForm(f => ({ ...f, beneficiario: nombre }))}
+              />
             </Campo>
             <Campo etiqueta="Fecha requerida" tamano="angosto">
               <input className="input" type="date" value={form.fecha_requerida} onChange={e => setForm({ ...form, fecha_requerida: e.target.value })} style={{ minWidth: 150 }} />

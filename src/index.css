@@ -388,3 +388,20 @@ p { margin: 0; }
 .menu-usuario__lista button:hover { background: var(--superficie-suave); }
 .menu-usuario__info { padding: 8px 10px 10px; border-bottom: 1px solid var(--linea); margin-bottom: 4px; font-size: var(--fs-sm); color: var(--texto-suave); }
 .menu-usuario__info strong { display: block; color: var(--texto); font-size: var(--fs-base); }
+
+/* ---------- Pestañas (sobre el fondo azul marino) ---------- */
+.pestanas { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.pestana {
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25); background: transparent; color: var(--texto-sobre-navy-suave);
+  font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+}
+.pestana:hover { color: var(--texto-sobre-navy); border-color: rgba(255, 255, 255, 0.5); }
+.pestana:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.pestana--activa, .pestana--activa:hover { background: var(--superficie); color: var(--navy-800); border-color: var(--superficie); }
+
+.modal--ancho { max-width: 680px; }
+/* Formulario de varios campos dentro de una ventana modal */
+.form-modal { align-items: flex-start; }
+.form-modal .campo { flex-basis: 200px; }
+.modal__cuerpo .form-modal .campo { margin-top: 0; }

@@ -18,6 +18,7 @@ React 19 + Vite + react-router 7 + lucide-react. Despliegue automático en Verce
   - El token vive solo en memoria (`src/lib/sesion.js`). Nunca guardarlo en localStorage.
   - Ocultar en la interfaz lo que el rol no puede hacer. Quien decide siempre es el backend.
   - Cada ruta nueva lleva su permiso en `RUTAS` de `App.jsx`.
+- **Catálogos:** `useLista(ruta)` y `useOpciones()` de `src/lib/catalogos.js`. Los formularios usan selects del catálogo (activos), nunca texto libre para categoría, ubicación, motivo u organización.
 - **Carga de datos:** `useCallback(() => pedirJSON(...).then(setX).catch(...))` y luego `useEffect(() => { cargar() }, [cargar])`. Así lo exige la regla de lint `set-state-in-effect`.
 - **Formatos:** fechas, horas y números siempre con `src/lib/formato.js` (es-CO, America/Bogota, miles con punto).
 - **Colores:** los de acciones y estados de SBO salen de `src/lib/tonos.js`.

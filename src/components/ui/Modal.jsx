@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef } from 'react'
 
 // Ventana modal accesible: Escape cierra, el foco entra al abrir y vuelve al cerrar
-export default function Modal({ titulo, icono: Icono, onCerrar, children, acciones }) {
+// ancho: para formularios de varios campos
+export default function Modal({ titulo, icono: Icono, onCerrar, children, acciones, ancho = false }) {
   const idTitulo = useId()
   const caja = useRef(null)
 
@@ -26,7 +27,7 @@ export default function Modal({ titulo, icono: Icono, onCerrar, children, accion
 
   return (
     <div className="modal-fondo" onMouseDown={(e) => { if (e.target === e.currentTarget) onCerrar() }}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={idTitulo} ref={caja} tabIndex={-1} onKeyDown={alTeclear}>
+      <div className={`modal ${ancho ? 'modal--ancho' : ''}`} role="dialog" aria-modal="true" aria-labelledby={idTitulo} ref={caja} tabIndex={-1} onKeyDown={alTeclear}>
         <h2 id={idTitulo}>{Icono && <Icono size={20} aria-hidden="true" />}{titulo}</h2>
         <div className="modal__cuerpo">{children}</div>
         {acciones && <div className="modal__acciones">{acciones}</div>}

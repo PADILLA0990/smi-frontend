@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import { AlertTriangle, HelpCircle } from 'lucide-react'
 import Modal from './Modal'
 
-// Confirmación (y opcionalmente un campo de texto) antes de una acción
+// Confirmación (y opcionalmente un campo de texto, o una lista si campo.opciones = [{ valor, etiqueta }]) antes de una acción
 export default function ConfirmModal({ titulo, mensaje, textoConfirmar = 'Confirmar', textoCancelar = 'Cancelar', peligro = false, campo, onConfirmar, onCancelar }) {
   const [valor, setValor] = useState(campo?.valorInicial || '')
   const idCampo = useId()
@@ -31,7 +31,15 @@ export default function ConfirmModal({ titulo, mensaje, textoConfirmar = 'Confir
         {campo && (
           <div className="campo">
             <label htmlFor={idCampo}>{campo.etiqueta}</label>
-            <input id={idCampo} className="input" placeholder={campo.placeholder} value={valor} onChange={e => setValor(e.target.value)} />
+            {campo.opciones ? (
+              <select id={idCampo} className="select" value={valor} onChange={e => setValor(e.target.value)}>
+                <option value="">{campo.placeholder || 'Seleccione…'}</option>
+                {campo.opciones.map(o => <option key={o.valor} value={o.valor}>{o.etiqueta}</option>)}
+              </select>
+            ) : (
+              <input id={idCampo} className="input" placeholder={campo.placeholder} value={valor} onChange={e => setValor(e.target.value)} />
+            )}
+            {campo.ayuda && <span className="campo__ayuda">{campo.ayuda}</span>}
           </div>
         )}
       </form>
