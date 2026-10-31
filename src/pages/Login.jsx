@@ -1,8 +1,10 @@
-import { useState } from 'react'
-import { AlertCircle, Info } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, Info, Loader2 } from 'lucide-react'
 import logoBab from '../assets/logo-bab.png'
 import Campo from '../components/ui/Campo'
 import { useSesion } from '../lib/auth'
+import { despertarServidor } from '../lib/sesion'
+import { useConectando } from '../lib/conexion'
 
 // La validación de usuario y contraseña la hace el backend (contraseñas cifradas con bcrypt)
 export default function Login() {
@@ -11,6 +13,10 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const conectando = useConectando()
+
+  // Despierta el servidor mientras la persona escribe, para que el login no espere el arranque de Render
+  useEffect(() => { despertarServidor() }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -36,7 +42,13 @@ export default function Login() {
         </div>
 
         <div className="card">
-          {aviso && !error && (
+          {conectando && (
+            <div className="aviso-info" role="status" style={{ marginBottom: 14 }}>
+              <Loader2 size={18} className="girando" aria-hidden="true" />
+              <span>Despertando el servidor… La primera conexión después de un rato sin uso puede tardar hasta un minuto.</span>
+            </div>
+          )}
+          {aviso && !error && !conectando && (
             <div className="aviso-info" role="status" style={{ marginBottom: 14 }}>
               <Info size={18} aria-hidden="true" /><span>{aviso}</span>
             </div>
@@ -54,7 +66,7 @@ export default function Login() {
               <input className="input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </Campo>
             <button type="submit" className="btn btn--marca" disabled={enviando} style={{ marginTop: 6, padding: '11px 18px' }}>
-              {enviando ? 'Ingresando…' : 'Iniciar Sesión'}
+              {enviando ? (conectando ? 'Esperando al servidor…' : 'Ingresando…') : 'Iniciar Sesión'}
             </button>
           </form>
         </div>

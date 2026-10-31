@@ -2,8 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { pedirJSON } from '../api'
 import { AuthContexto } from '../lib/auth'
-import { guardarSesion, borrarSesion, haySesionEnPestana, renovarSesion, suscribirExpiracion } from '../lib/sesion'
+import { useConectando } from '../lib/conexion'
+import { guardarSesion, borrarSesion, haySesionEnPestana, renovarSesion, suscribirExpiracion, despertarServidor } from '../lib/sesion'
 import logoBab from '../assets/logo-bab.png'
+
+// En la pantalla de carga, explica la espera si el servidor está despertando
+function AvisoDespertando() {
+  return useConectando() ? <p style={{ marginTop: 6 }}>El servidor está despertando; puede tardar hasta un minuto.</p> : null
+}
 
 // Restaura la sesión al refrescar (con la cookie) y expone login, logout y cambio de contraseña
 export default function AuthProvider({ children }) {
@@ -27,6 +33,8 @@ export default function AuthProvider({ children }) {
   }), [])
 
   const iniciarSesion = useCallback(async (nombreUsuario, password) => {
+    // Primero se espera a que el servidor despierte; el login se envía una sola vez
+    await despertarServidor()
     const data = await pedirJSON('/api/auth/login', { method: 'POST', body: { usuario: nombreUsuario, password }, sinSesion: true })
     guardarSesion(data.accessToken)
     setUsuario(data.usuario)
@@ -62,6 +70,7 @@ export default function AuthProvider({ children }) {
           <p style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
             <Loader2 size={18} className="girando" aria-hidden="true" /> Restaurando la sesión…
           </p>
+          <AvisoDespertando />
         </div>
       </main>
     )
