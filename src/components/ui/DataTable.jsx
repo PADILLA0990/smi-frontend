@@ -15,15 +15,22 @@ const normalizar = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '
  * columnas: [{ id, titulo, valor?: fila => valor para ordenar/buscar, render?: fila => JSX,
  *              alinear?: 'num' | 'centro', ordenable?: true, oculta?: false, fija?: false }]
  * filas: array, o null mientras carga.
+ * servidor: si se pasa, la búsqueda, el orden y la paginación los resuelve la API y "filas" es solo la página actual:
+ *   { total, pagina, onPagina, orden, onOrden, texto, onTexto }
  */
 export default function DataTable({
   idTabla, columnas, filas, claveFila = 'id', busqueda = 'Buscar…', porPagina = 15,
-  ordenInicial, vacio = {}, onFilaClick, filaActiva, herramientas
+  ordenInicial, vacio = {}, onFilaClick, filaActiva, herramientas, servidor
 }) {
   const claveStorage = idTabla ? `smi-columnas-${idTabla}` : null
-  const [texto, setTexto] = useState('')
-  const [orden, setOrden] = useState(ordenInicial || null)
-  const [pagina, setPagina] = useState(1)
+  const [textoLocal, setTextoLocal] = useState('')
+  const [ordenLocal, setOrdenLocal] = useState(ordenInicial || null)
+  const [paginaLocal, setPaginaLocal] = useState(1)
+  const texto = servidor ? servidor.texto : textoLocal
+  const orden = servidor ? servidor.orden : ordenLocal
+  const pagina = servidor ? servidor.pagina : paginaLocal
+  const setPagina = servidor ? servidor.onPagina : setPaginaLocal
+  const setTexto = servidor ? servidor.onTexto : setTextoLocal
   const [visibles, setVisibles] = useState(() =>
     (claveStorage && leerColumnas(claveStorage)) || columnas.filter(c => !c.oculta).map(c => c.id))
 
@@ -32,6 +39,7 @@ export default function DataTable({
 
   const procesadas = useMemo(() => {
     if (!filas) return []
+    if (servidor) return filas
     let resultado = filas
     const q = normalizar(texto.trim())
     if (q) {
@@ -52,14 +60,17 @@ export default function DataTable({
       }
     }
     return resultado
-  }, [filas, texto, orden, columnas])
+  }, [filas, texto, orden, columnas, servidor])
 
-  const totalPaginas = Math.max(1, Math.ceil(procesadas.length / porPagina))
+  const totalRegistros = servidor ? servidor.total : procesadas.length
+  const totalPaginas = Math.max(1, Math.ceil(totalRegistros / porPagina))
   const paginaActual = Math.min(pagina, totalPaginas)
-  const visiblesPagina = procesadas.slice((paginaActual - 1) * porPagina, paginaActual * porPagina)
+  const visiblesPagina = servidor ? procesadas : procesadas.slice((paginaActual - 1) * porPagina, paginaActual * porPagina)
 
   const ordenarPor = (id) => {
-    setOrden(o => (o?.id === id ? { id, dir: o.dir === 'asc' ? 'desc' : 'asc' } : { id, dir: 'asc' }))
+    const siguiente = (o) => (o?.id === id ? { id, dir: o.dir === 'asc' ? 'desc' : 'asc' } : { id, dir: 'asc' })
+    if (servidor) servidor.onOrden(siguiente(orden))
+    else setOrdenLocal(siguiente)
   }
 
   const alternarColumna = (id) => {
@@ -149,8 +160,8 @@ export default function DataTable({
 
           <div className="tabla-pie">
             <span>
-              {formatearNumero(procesadas.length)} registro{procesadas.length === 1 ? '' : 's'}
-              {texto && filas.length !== procesadas.length && ` (de ${formatearNumero(filas.length)})`}
+              {formatearNumero(totalRegistros)} registro{totalRegistros === 1 ? '' : 's'}
+              {!servidor && texto && filas.length !== procesadas.length && ` (de ${formatearNumero(filas.length)})`}
             </span>
             {totalPaginas > 1 && (
               <div className="paginacion">

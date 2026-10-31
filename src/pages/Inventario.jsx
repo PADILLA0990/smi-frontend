@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
-import { PackageSearch, Trash2, MapPin, PackageOpen, Pencil } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { PackageSearch, Trash2, MapPin, PackageOpen, Pencil, Ban, RotateCcw, FileClock, AlertTriangle, FilterX } from 'lucide-react'
 import { pedirJSON } from '../api'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -11,16 +12,20 @@ import ErrorState from '../components/ui/ErrorState'
 import { useConfirmar, useAvisar } from '../lib/dialogos'
 import { usePuede } from '../lib/auth'
 import { useLista, useOpciones } from '../lib/catalogos'
-import { formatearNumero, formatearFecha } from '../lib/formato'
+import { useConsultaPaginada } from '../lib/paginado'
+import { tonoAccion, TONO_ESTADO_SBO, ETIQUETA_ESTADO_SBO } from '../lib/tonos'
+import { formatearNumero, formatearFecha, formatearFechaHora } from '../lib/formato'
 
 const TONO_CONDICION = { PERFECTO: 'verde', BUENO: 'azul', DETERIORO: 'ambar', DANADO: 'rojo' }
+const POR_PAGINA = 15
+const FILTROS_VACIOS = { categoriaId: '', ubicacion: '', condicion: '', estado: 'activos', sinUbicar: false, bajoMinimo: false }
 
 // Edición de datos descriptivos (no cambia stock ni ubicación); queda en el historial como EDICIÓN
 function ModalEditar({ producto, opciones, categorias, onCerrar, onGuardado }) {
   const inicial = {
     descripcion: producto.descripcion, categoriaId: producto.categoriaId ? String(producto.categoriaId) : '',
     condicion: producto.condicion || '', talla: producto.talla || '', grupo: producto.grupo || '',
-    stock_minimo: producto.stock_minimo ?? '', activo: producto.activo !== false
+    stock_minimo: producto.stock_minimo ?? ''
   }
   const [form, setForm] = useState(inicial)
   const [error, setError] = useState('')
@@ -80,38 +85,110 @@ function ModalEditar({ producto, opciones, categorias, onCerrar, onGuardado }) {
         <Campo etiqueta="Stock mínimo" tamano="angosto">
           <input className="input" type="number" min="0" step="1" placeholder="Por defecto" value={form.stock_minimo} onChange={e => setForm({ ...form, stock_minimo: e.target.value })} />
         </Campo>
-        <Campo etiqueta="Estado" ayuda="Un producto inactivo no recibe ingresos ni aparece para retiros.">
-          <select className="select" value={form.activo ? 'si' : 'no'} onChange={e => setForm({ ...form, activo: e.target.value === 'si' })}>
-            <option value="si">Activo</option>
-            <option value="no">Inactivo</option>
-          </select>
-        </Campo>
       </form>
+    </Modal>
+  )
+}
+
+// Detalle del producto: datos, SBO en curso y kardex con saldo acumulado
+function ModalKardex({ producto, opciones, onCerrar }) {
+  const [kardex, setKardex] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    pedirJSON(`/api/productos/${producto.id}/kardex`).then(setKardex).catch(e => setError(e.message))
+  }, [producto.id])
+
+  const p = kardex?.producto || producto
+  const movimientos = kardex ? [...kardex.movimientos].reverse() : null
+
+  return (
+    <Modal titulo={`${p.codigo_producto} · ${p.descripcion}`} icono={FileClock} onCerrar={onCerrar} ancho
+      acciones={<>
+        <Link className="btn btn--secundario" to={`/historial?codigo=${encodeURIComponent(p.codigo_producto)}`}>Ver en el historial</Link>
+        <button type="button" className="btn btn--primario" onClick={onCerrar} data-autofoco>Cerrar</button>
+      </>}>
+      <dl className="ficha">
+        <div><dt>Categoría</dt><dd>{p.categoria}</dd></div>
+        <div><dt>Condición</dt><dd>{opciones.condiciones[p.condicion] || '—'}</dd></div>
+        <div><dt>Ubicación</dt><dd>{p.codigo_estanteria || p.ubicacion_general}</dd></div>
+        <div><dt>Total</dt><dd>{formatearNumero(p.cantidad)}</dd></div>
+        <div><dt>Reservado</dt><dd>{formatearNumero(p.cantidad_reservada)}</dd></div>
+        <div><dt>Libre</dt><dd>{formatearNumero(p.cantidad - p.cantidad_reservada)}</dd></div>
+      </dl>
+      {p.activo === false && <p className="texto-suave">Producto inactivo: no recibe ingresos ni se puede solicitar.</p>}
+
+      {error && <div className="estado-error" role="alert"><span>{error}</span></div>}
+      {kardex && !kardex.coincide && (
+        <div className="aviso-alerta" role="status">
+          <AlertTriangle size={16} aria-hidden="true" />
+          <span>Según el historial deberían quedar <strong>{formatearNumero(kardex.saldo_historial)}</strong> unidades y el inventario tiene <strong>{formatearNumero(p.cantidad)}</strong>. Se revisa en un conteo físico (Conciliación).</span>
+        </div>
+      )}
+
+      {kardex?.reservas.length > 0 && (
+        <>
+          <h3 className="subtitulo">Solicitudes SBO en curso</h3>
+          <ul className="lista-simple">
+            {kardex.reservas.map(s => (
+              <li key={s.id}>
+                <span className="texto-codigo">{s.codigo_sbo}</span> <Badge tono={TONO_ESTADO_SBO[s.estado]}>{ETIQUETA_ESTADO_SBO[s.estado]}</Badge>{' '}
+                {formatearNumero(s.cantidad)} unidades para {s.organizacion}
+                {!s.reserva_stock && <span className="texto-suave"> (sin reservar hasta que se apruebe)</span>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      <h3 className="subtitulo">Kardex</h3>
+      {!movimientos ? <p className="texto-suave">Cargando movimientos…</p> : movimientos.length === 0 ? (
+        <p className="texto-suave">Sin movimientos registrados.</p>
+      ) : (
+        <div className="tabla-scroll kardex">
+          <table className="tabla">
+            <thead><tr><th>Fecha</th><th>Acción</th><th>Usuario</th><th>Detalle</th><th className="num">Saldo</th></tr></thead>
+            <tbody>
+              {movimientos.map(m => (
+                <tr key={m.id}>
+                  <td className="texto-sm texto-suave">{formatearFechaHora(m.fecha)}</td>
+                  <td><Badge tono={tonoAccion(m.accion)}>{m.accion}</Badge></td>
+                  <td>{m.operario}</td>
+                  <td className="texto-suave">{m.detalles || '—'}</td>
+                  <td className="num"><strong>{formatearNumero(m.saldo)}</strong></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </Modal>
   )
 }
 
 export default function Inventario() {
   const puede = usePuede()
-  const [productos, setProductos] = useState(null)
-  const [error, setError] = useState('')
+  const [parametrosUrl] = useSearchParams()
+  const [texto, setTexto] = useState(parametrosUrl.get('q') || '')
+  const [filtros, setFiltros] = useState(FILTROS_VACIOS)
+  const [orden, setOrden] = useState({ id: 'codigo_producto', dir: 'asc' })
+  const [pagina, setPagina] = useState(1)
   const [editando, setEditando] = useState(null)
+  const [detalle, setDetalle] = useState(null)
   const confirmar = useConfirmar()
   const avisar = useAvisar()
   const opciones = useOpciones()
   const ubicaciones = useLista('/api/ubicaciones').datos || []
   const categorias = useLista('/api/catalogos/categorias?activos=1').datos || []
 
-  const cargarInventario = useCallback(() => pedirJSON('/api/productos')
-    .then(data => {
-      setProductos(data)
-      setError('')
-    })
-    .catch(err => setError(err.message)), [])
+  const { datos, total, resumen, error, recargar } = useConsultaPaginada('/api/productos', {
+    pagina, porPagina: POR_PAGINA, q: texto.trim(), ...filtros, orden: orden.id, dir: orden.dir
+  })
 
-  useEffect(() => { cargarInventario() }, [cargarInventario])
+  // Cualquier cambio de búsqueda o filtro vuelve a la primera página
+  const cambiarFiltro = (campo, valor) => { setFiltros(f => ({ ...f, [campo]: valor })); setPagina(1) }
+  const hayFiltros = texto || Object.keys(FILTROS_VACIOS).some(k => filtros[k] !== FILTROS_VACIOS[k])
 
-  // El backend actualiza el producto y registra el historial en una sola operación
   const moverProducto = async (prod) => {
     const actual = prod.codigo_estanteria || prod.ubicacion_general
     const nuevaEstanteria = await confirmar({
@@ -130,31 +207,53 @@ export default function Inventario() {
     try {
       await pedirJSON(`/api/productos/${prod.id}`, { method: 'PUT', body: { codigo_estanteria: nuevaEstanteria } })
       avisar(`${prod.codigo_producto} reubicado en ${nuevaEstanteria}.`)
-      cargarInventario()
+      recargar()
     } catch (err) {
       avisar(err.message, 'error')
     }
   }
 
-  const eliminarProducto = async (prod) => {
+  // Inactivar o reactivar, siempre con una justificación que queda en el historial
+  const cambiarEstado = async (prod) => {
+    const inactivar = prod.activo !== false
+    const justificacion = await confirmar({
+      titulo: `${inactivar ? 'Inactivar' : 'Activar'} ${prod.codigo_producto}`,
+      mensaje: inactivar
+        ? `"${prod.descripcion}" dejará de recibir ingresos y no se podrá solicitar en SBO nuevas. Conserva sus ${formatearNumero(prod.cantidad)} unidades y su historial.`
+        : `"${prod.descripcion}" volverá a recibir ingresos y a estar disponible para SBO.`,
+      textoConfirmar: inactivar ? 'Inactivar' : 'Activar',
+      peligro: inactivar,
+      campo: { etiqueta: 'Justificación', placeholder: inactivar ? 'Ej.: descontinuado, se agotó y no volverá…' : 'Ej.: se volvió a recibir', ayuda: 'Entre 5 y 200 caracteres. Queda en el historial.' }
+    })
+    if (!justificacion) return
+    try {
+      await pedirJSON(`/api/productos/${prod.id}/${inactivar ? 'inactivar' : 'activar'}`, { method: 'POST', body: { justificacion } })
+      avisar(`${prod.codigo_producto} ${inactivar ? 'inactivado' : 'activado'}.`)
+      recargar()
+    } catch (err) {
+      avisar(err.message, 'error')
+    }
+  }
+
+  // Borrado físico: solo Administrador y solo productos registrados por error (el backend lo valida)
+  const borrarProducto = async (prod) => {
     const ok = await confirmar({
-      titulo: `Eliminar ${prod.codigo_producto}`,
-      mensaje: `Se retirará "${prod.descripcion}" (${formatearNumero(prod.cantidad)} unidades) del inventario. La acción quedará registrada en el historial.`,
-      textoConfirmar: 'Eliminar',
+      titulo: `Borrar ${prod.codigo_producto} del sistema`,
+      mensaje: `Solo para productos registrados por error que no tienen movimientos. Se borrará "${prod.descripcion}" (${formatearNumero(prod.cantidad)} unidades) y quedará constancia en el historial. Si el producto ya se usó, inactívelo.`,
+      textoConfirmar: 'Borrar',
       peligro: true
     })
     if (!ok) return
-
     try {
       await pedirJSON(`/api/productos/${prod.id}`, { method: 'DELETE' })
-      avisar(`${prod.codigo_producto} eliminado del inventario.`)
-      cargarInventario()
+      avisar(`${prod.codigo_producto} borrado del sistema.`)
+      recargar()
     } catch (err) {
       avisar(err.message, 'error')
     }
   }
 
-  const hayAcciones = puede('productos:reubicar') || puede('productos:editar') || puede('productos:eliminar')
+  const hayAcciones = puede('productos:reubicar') || puede('productos:editar') || puede('productos:inactivar')
 
   const columnas = [
     {
@@ -164,24 +263,24 @@ export default function Inventario() {
     { id: 'descripcion', titulo: 'Descripción' },
     { id: 'categoria', titulo: 'Categoría', render: p => <Badge>{p.categoria}</Badge> },
     {
-      id: 'condicion', titulo: 'Condición', valor: p => opciones.condiciones[p.condicion] || '',
+      id: 'condicion', titulo: 'Condición',
       render: p => p.condicion ? <Badge tono={TONO_CONDICION[p.condicion]}>{opciones.condiciones[p.condicion] || p.condicion}</Badge> : <span className="texto-suave">—</span>
     },
-    { id: 'talla', titulo: 'Talla', oculta: true, render: p => p.talla || '—' },
-    { id: 'grupo', titulo: 'Género / grupo', oculta: true, render: p => p.grupo || '—' },
+    { id: 'talla', titulo: 'Talla', oculta: true, ordenable: false, render: p => p.talla || '—' },
+    { id: 'grupo', titulo: 'Género / grupo', oculta: true, ordenable: false, render: p => p.grupo || '—' },
+    { id: 'cantidad', titulo: 'Total', alinear: 'num', render: p => formatearNumero(p.cantidad) },
+    { id: 'reservado', titulo: 'Reservado', alinear: 'num', render: p => (p.cantidad_reservada > 0 ? <span className="texto-aviso" title="Apartadas por Solicitudes SBO aprobadas">{formatearNumero(p.cantidad_reservada)}</span> : <span className="texto-suave">0</span>) },
     {
-      id: 'cantidad', titulo: 'Cantidad', alinear: 'num',
+      id: 'libre', titulo: 'Libre', alinear: 'num',
       render: p => (
         <>
-          {formatearNumero(p.cantidad)}
-          {p.cantidad_reservada > 0 && (
-            <div className="texto-aviso" title="Apartadas por Solicitudes SBO aprobadas">{formatearNumero(p.cantidad_reservada)} reservadas</div>
-          )}
+          <strong>{formatearNumero(p.libre)}</strong>
+          {p.bajo_minimo && <div><Badge tono="rojo" title={`Stock mínimo: ${formatearNumero(p.stock_minimo_efectivo)}`}>Bajo mínimo</Badge></div>}
         </>
       )
     },
     {
-      id: 'ubicacion', titulo: 'Ubicación', valor: p => p.codigo_estanteria || p.ubicacion_general,
+      id: 'ubicacion', titulo: 'Ubicación',
       render: p => (
         <>
           <div className="texto-suave texto-sm">{p.ubicacion_general}</div>
@@ -189,12 +288,14 @@ export default function Inventario() {
         </>
       )
     },
-    { id: 'fecha_ingreso', titulo: 'Ingreso', oculta: true, valor: p => p.fecha_ingreso, render: p => formatearFecha(p.fecha_ingreso) },
+    { id: 'ultima_actualizacion', titulo: 'Actualizado', render: p => <span className="texto-sm texto-suave">{formatearFecha(p.ultima_actualizacion)}</span> },
+    { id: 'fecha_ingreso', titulo: 'Ingreso', oculta: true, render: p => formatearFecha(p.fecha_ingreso) },
     hayAcciones && {
-      id: 'acciones', titulo: 'Acciones', fija: true, ordenable: false, alinear: 'centro', valor: () => '',
+      id: 'acciones', titulo: 'Acciones', fija: true, ordenable: false, alinear: 'centro',
       render: p => (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-          {puede('productos:reubicar') && (
+        // Los botones no abren el detalle de la fila
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+          {puede('productos:reubicar') && p.activo !== false && (
             <button className="btn btn--primario btn--sm" onClick={() => moverProducto(p)}>
               <MapPin size={14} aria-hidden="true" /> Reubicar
             </button>
@@ -204,35 +305,92 @@ export default function Inventario() {
               <Pencil size={16} />
             </button>
           )}
-          {puede('productos:eliminar') && <button className="btn btn--secundario btn--sm" style={{ color: 'var(--peligro)' }} onClick={() => eliminarProducto(p)} aria-label={`Eliminar ${p.codigo_producto}`} title="Eliminar producto">
-            <Trash2 size={16} />
-          </button>}
+          {puede('productos:inactivar') && (
+            <button className="btn btn--secundario btn--sm" onClick={() => cambiarEstado(p)}
+              aria-label={`${p.activo === false ? 'Activar' : 'Inactivar'} ${p.codigo_producto}`} title={p.activo === false ? 'Activar producto' : 'Inactivar producto'}
+              style={p.activo === false ? undefined : { color: 'var(--peligro)' }}>
+              {p.activo === false ? <RotateCcw size={16} /> : <Ban size={16} />}
+            </button>
+          )}
+          {puede('productos:eliminar') && (
+            <button className="btn btn--secundario btn--sm" style={{ color: 'var(--peligro)' }} onClick={() => borrarProducto(p)} aria-label={`Borrar ${p.codigo_producto}`} title="Borrar (solo productos registrados por error)">
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       )
     }
   ].filter(Boolean)
 
+  const filtrosBarra = (
+    <div className="filtros">
+      <select className="select" aria-label="Categoría" value={filtros.categoriaId} onChange={e => cambiarFiltro('categoriaId', e.target.value)}>
+        <option value="">Todas las categorías</option>
+        {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+      </select>
+      <select className="select" aria-label="Ubicación" value={filtros.ubicacion} onChange={e => cambiarFiltro('ubicacion', e.target.value)}>
+        <option value="">Todas las ubicaciones</option>
+        {ubicaciones.map(u => <option key={u.id} value={u.codigo}>{u.codigo}</option>)}
+      </select>
+      <select className="select" aria-label="Condición" value={filtros.condicion} onChange={e => cambiarFiltro('condicion', e.target.value)}>
+        <option value="">Todas las condiciones</option>
+        {Object.entries(opciones.condiciones).map(([v, et]) => <option key={v} value={v}>{et}</option>)}
+        <option value="SIN">Sin especificar</option>
+      </select>
+      <select className="select" aria-label="Estado" value={filtros.estado} onChange={e => cambiarFiltro('estado', e.target.value)}>
+        <option value="activos">Activos</option>
+        <option value="inactivos">Inactivos</option>
+        <option value="todos">Activos e inactivos</option>
+      </select>
+      <label className="filtro-check"><input type="checkbox" checked={filtros.sinUbicar} onChange={e => cambiarFiltro('sinUbicar', e.target.checked)} /> Sin ubicar</label>
+      <label className="filtro-check"><input type="checkbox" checked={filtros.bajoMinimo} onChange={e => cambiarFiltro('bajoMinimo', e.target.checked)} /> Bajo stock mínimo</label>
+      {hayFiltros && (
+        <button type="button" className="btn btn--secundario btn--sm" onClick={() => { setFiltros(FILTROS_VACIOS); setTexto(''); setPagina(1) }}>
+          <FilterX size={14} aria-hidden="true" /> Limpiar
+        </button>
+      )}
+    </div>
+  )
+
   return (
     <div>
       <PageHeader icono={PackageSearch} titulo="Inventario Maestro" subtitulo="Existencias, reservas y ubicación de cada artículo" />
 
-      <ErrorState mensaje={error} onReintentar={() => { setError(''); cargarInventario() }} />
+      <ErrorState mensaje={error} onReintentar={recargar} />
 
       <Card>
+        {filtrosBarra}
+        {resumen && (
+          <p className="resumen-filtro">
+            {formatearNumero(total)} producto{total === 1 ? '' : 's'} · <strong>{formatearNumero(resumen.unidades)}</strong> unidades
+            · {formatearNumero(resumen.libres)} libres · {formatearNumero(resumen.reservadas)} reservadas
+          </p>
+        )}
         <DataTable
-          idTabla="inventario"
+          idTabla="inventario-v2"
           columnas={columnas}
-          filas={error && !productos ? [] : productos}
-          busqueda="Buscar por código, descripción, categoría, condición o ubicación…"
-          ordenInicial={{ id: 'codigo_producto', dir: 'asc' }}
-          vacio={{ icono: PackageOpen, titulo: 'No hay productos en el inventario', mensaje: 'Registre un ingreso en "Ingresos y Retiros" para empezar.' }}
+          filas={datos}
+          porPagina={POR_PAGINA}
+          busqueda="Buscar por código o descripción…"
+          servidor={{
+            total, pagina, onPagina: setPagina,
+            orden, onOrden: (o) => { setOrden(o); setPagina(1) },
+            texto, onTexto: (t) => { setTexto(t); setPagina(1) }
+          }}
+          onFilaClick={setDetalle}
+          filaActiva={detalle?.id}
+          vacio={hayFiltros
+            ? { icono: FilterX, titulo: 'Ningún producto cumple los filtros', mensaje: 'Pruebe con otros filtros o límpielos.' }
+            : { icono: PackageOpen, titulo: 'No hay productos en el inventario', mensaje: 'Registre un ingreso en "Ingresos y Retiros" para empezar.' }}
         />
       </Card>
+
+      {detalle && <ModalKardex producto={detalle} opciones={opciones} onCerrar={() => setDetalle(null)} />}
 
       {editando && (
         <ModalEditar producto={editando} opciones={opciones} categorias={categorias}
           onCerrar={() => setEditando(null)}
-          onGuardado={() => { avisar(`${editando.codigo_producto} actualizado.`); setEditando(null); cargarInventario() }} />
+          onGuardado={() => { avisar(`${editando.codigo_producto} actualizado.`); setEditando(null); recargar() }} />
       )}
     </div>
   )

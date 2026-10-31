@@ -20,6 +20,7 @@ React 19 + Vite + react-router 7 + lucide-react. Despliegue automático en Verce
   - Cada ruta nueva lleva su permiso en `RUTAS` de `App.jsx`.
 - **Catálogos:** `useLista(ruta)` y `useOpciones()` de `src/lib/catalogos.js`. Los formularios usan selects del catálogo (activos), nunca texto libre para categoría, ubicación, motivo u organización.
 - **Carga de datos:** `useCallback(() => pedirJSON(...).then(setX).catch(...))` y luego `useEffect(() => { cargar() }, [cargar])`. Así lo exige la regla de lint `set-state-in-effect`.
+- **Listas grandes (inventario, historial):** `useConsultaPaginada(ruta, parametros)` de `src/lib/paginado.js` con `DataTable` en modo `servidor` (la API filtra, ordena y pagina). Si se agregan columnas a una tabla con columnas guardadas, cambiar su `idTabla` (p. ej. `inventario-v2`) para que nadie las tenga ocultas.
 - **Formatos:** fechas, horas y números siempre con `src/lib/formato.js` (es-CO, America/Bogota, miles con punto).
 - **Colores:** los de acciones y estados de SBO salen de `src/lib/tonos.js`.
 - **Título de pestaña:** se define en `RUTAS` de `App.jsx`.
