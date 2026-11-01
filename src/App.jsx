@@ -7,6 +7,7 @@ import Inventario from './pages/Inventario'
 import Historial from './pages/Historial'
 import Movimientos from './pages/Movimientos'
 import Solicitudes from './pages/Solicitudes'
+import Remision from './pages/Remision'
 import InventarioMapa from './pages/InventarioMapa'
 import Configuracion from './pages/Configuracion'
 import Comprobante from './pages/Comprobante'
@@ -186,6 +187,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/movimientos" element={<Protegida permiso="movimientos:registrar"><Movimientos /></Protegida>} />
               <Route path="/solicitudes" element={<Solicitudes />} />
+              <Route path="/solicitudes/:codigo/remision" element={<Remision />} />
               <Route path="/inventario" element={<Inventario />} />
               <Route path="/inventario-mapa" element={<InventarioMapa />} />
               <Route path="/historial" element={<Historial />} />

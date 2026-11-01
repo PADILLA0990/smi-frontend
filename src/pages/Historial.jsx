@@ -21,9 +21,9 @@ const columnas = [
   },
   {
     id: 'codigo_producto', titulo: 'Código', ordenable: false,
-    // Los eventos SBO usan el código de la SBO; el resto enlaza al producto en el inventario
+    // Los eventos SBO enlazan al detalle de la solicitud; el resto, al producto en el inventario
     render: r => r.es_sbo
-      ? <span className="texto-codigo">{r.codigo_producto}</span>
+      ? <Link className="texto-codigo enlace" to={`/solicitudes?codigo=${encodeURIComponent(r.codigo_producto)}`} title="Ver la solicitud">{r.codigo_producto}</Link>
       : <Link className="texto-codigo enlace" to={`/inventario?q=${encodeURIComponent(r.codigo_producto)}`}>{r.codigo_producto}</Link>
   },
   { id: 'accion', titulo: 'Acción', ordenable: false, render: r => <Badge tono={tonoAccion(r.accion)}>{r.accion}</Badge> },

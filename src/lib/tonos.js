@@ -6,7 +6,8 @@ export const TONO_ESTADO_SBO = {
   EN_ALISTAMIENTO: 'ambar',
   ALISTADA: 'cian',
   DESPACHADA: 'verde',
-  CANCELADA: 'gris'
+  CANCELADA: 'gris',
+  VENCIDA: 'rojo'
 }
 
 export const ETIQUETA_ESTADO_SBO = {
@@ -15,7 +16,8 @@ export const ETIQUETA_ESTADO_SBO = {
   EN_ALISTAMIENTO: 'En alistamiento',
   ALISTADA: 'Alistada',
   DESPACHADA: 'Despachada',
-  CANCELADA: 'Cancelada'
+  CANCELADA: 'Cancelada',
+  VENCIDA: 'Vencida'
 }
 
 export function tonoAccion(accion = '') {
@@ -25,6 +27,7 @@ export function tonoAccion(accion = '') {
   if (accion.startsWith('AJUSTE')) return 'morado'
   if (accion.startsWith('ELIMINACI')) return 'rojo'
   // Eventos de SBO: "SBO APROBADA" toma el color de su estado
+  if (accion === 'SBO RENOVADA') return 'cian'
   if (accion.startsWith('SBO ')) return TONO_ESTADO_SBO[accion.slice(4)] || 'gris'
   return 'gris'
 }
