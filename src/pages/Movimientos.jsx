@@ -41,7 +41,8 @@ export default function Movimientos() {
       </div>
       {/* Los formularios quedan montados (ocultos) para no perder un documento a medio llenar al cambiar de pestaña */}
       <div role="tabpanel" hidden={actual !== 'ingreso'}>
-        <FormIngreso productos={productos} unidades={unidades} categorias={categorias} ubicaciones={ubicaciones} opciones={opciones} onGuardado={cargarProductos} />
+        <FormIngreso productos={productos} unidades={unidades} categorias={categorias} ubicaciones={ubicaciones} opciones={opciones} onGuardado={cargarProductos}
+          ubicacionInicial={params.get('ubicacion') || ''} />
       </div>
       <div role="tabpanel" hidden={actual !== 'salida'}>
         <FormSalida productos={productos} unidades={unidades} opciones={opciones} onGuardado={cargarProductos} />

@@ -9,11 +9,11 @@ import { codigoLibre } from '../../lib/documentos'
 // Datos del producto que se crea con el ingreso, sin salir del documento.
 // base: producto existente del que se copian los datos (otra condición del mismo artículo: va en otro código).
 // usados: códigos ya tomados (inventario y otras líneas nuevas del documento).
-export default function ModalProductoNuevo({ base, usados, categorias, ubicaciones, opciones, onGuardar, onCerrar }) {
+export default function ModalProductoNuevo({ base, ubicacionInicial, usados, categorias, ubicaciones, opciones, onGuardar, onCerrar }) {
   const avisar = useAvisar()
   const [form, setForm] = useState(() => ({
     codigo: '', descripcion: base?.descripcion || '', categoriaId: base?.categoriaId ? String(base.categoriaId) : '',
-    condicion: '', talla: base?.talla || '', grupo: base?.grupo || '', stock_minimo: base?.stock_minimo ?? '', ubicacion_general: 'Recepción'
+    condicion: '', talla: base?.talla || '', grupo: base?.grupo || '', stock_minimo: base?.stock_minimo ?? '', ubicacion_general: ubicacionInicial || 'Recepción'
   }))
   const cambiar = (campos) => setForm(f => ({ ...f, ...campos }))
   const condiciones = Object.entries(opciones.condiciones).filter(([valor]) => !base || valor !== base.condicion)

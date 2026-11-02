@@ -91,7 +91,7 @@ function ModalEditar({ producto, opciones, categorias, onCerrar, onGuardado }) {
 }
 
 // Detalle del producto: datos, SBO en curso y kardex con saldo acumulado
-function ModalKardex({ producto, opciones, onCerrar }) {
+export function ModalKardex({ producto, opciones, onCerrar }) {
   const [kardex, setKardex] = useState(null)
   const [error, setError] = useState('')
 

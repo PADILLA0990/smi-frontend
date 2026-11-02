@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Settings, Tags, Building2, HandHeart, ListChecks, Boxes, MapPin, SlidersHorizontal, Plus, Pencil, Power, Inbox } from 'lucide-react'
+import { Settings, Warehouse, Tags, Building2, HandHeart, ListChecks, Boxes, MapPin, SlidersHorizontal, Plus, Pencil, Power, Inbox } from 'lucide-react'
 import { pedirJSON } from '../api'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -14,6 +14,7 @@ import { useConfirmar, useAvisar } from '../lib/dialogos'
 import { usePuede } from '../lib/auth'
 import { useLista, useOpciones } from '../lib/catalogos'
 import { formatearNumero } from '../lib/formato'
+import PestanaEstanterias from './configuracion/PestanaEstanterias'
 
 // Definición de cada catálogo: campos del formulario y columnas de la tabla.
 // tipo: 'texto' (por defecto) | 'numero' | 'lista' (opciones de useOpciones); fijo: no se edita después de crear.
@@ -115,6 +116,7 @@ const CATALOGOS = {
 
 const PESTANAS = [
   ...Object.entries(CATALOGOS).map(([id, c]) => ({ id, etiqueta: c.etiqueta, icono: c.icono })),
+  { id: 'estanterias', etiqueta: 'Estanterías', icono: Warehouse },
   { id: 'parametros', etiqueta: 'Parámetros', icono: SlidersHorizontal }
 ]
 
@@ -307,7 +309,7 @@ export default function Configuracion() {
         ))}
       </div>
       <div role="tabpanel">
-        {actual === 'parametros' ? <PestanaParametros /> : <PestanaCatalogo key={actual} catalogo={actual} />}
+        {actual === 'parametros' ? <PestanaParametros /> : actual === 'estanterias' ? <PestanaEstanterias /> : <PestanaCatalogo key={actual} catalogo={actual} />}
       </div>
     </div>
   )

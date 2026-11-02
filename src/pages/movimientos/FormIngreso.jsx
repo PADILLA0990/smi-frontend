@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PackagePlus } from 'lucide-react'
+import { PackagePlus, MapPin } from 'lucide-react'
 import { pedirJSON } from '../../api'
 import Card from '../../components/ui/Card'
 import Campo from '../../components/ui/Campo'
@@ -15,7 +15,8 @@ import ConfirmarDocumento from './ConfirmarDocumento'
 const CABECERA_VACIA = { origen: 'DONACION', terceroId: '', soporte: '', observaciones: '' }
 
 // Documento de ingreso: varias líneas (productos existentes o nuevos) que se registran juntas
-export default function FormIngreso({ productos, unidades, categorias, ubicaciones, opciones, onGuardado }) {
+// ubicacionInicial: llega desde el Mapa de Bodega ("Ingresar aquí") y es la ubicación por defecto de los productos nuevos
+export default function FormIngreso({ productos, unidades, categorias, ubicaciones, opciones, onGuardado, ubicacionInicial = '' }) {
   const avisar = useAvisar()
   const navegar = useNavigate()
   const terceros = useLista('/api/catalogos/terceros?activos=1').datos || []
@@ -75,6 +76,12 @@ export default function FormIngreso({ productos, unidades, categorias, ubicacion
 
   return (
     <Card titulo="Documento de ingreso" icono={PackagePlus} subtitulo="Agregue una línea por producto. Si un artículo llega en otra condición, regístrelo con otro código.">
+      {ubicacionInicial && (
+        <div className="aviso-info" style={{ marginBottom: 12 }}>
+          <MapPin size={16} aria-hidden="true" />
+          <span>Ingreso desde el mapa: los productos <b>nuevos</b> quedarán en <b>{ubicacionInicial}</b> (puede cambiarlo al crearlos). Los existentes conservan su ubicación; para moverlos use Reubicar.</span>
+        </div>
+      )}
       <form onSubmit={revisar}>
         <div className="form-fila">
           <Campo etiqueta="Origen">
@@ -107,7 +114,7 @@ export default function FormIngreso({ productos, unidades, categorias, ubicacion
       </form>
 
       {productoNuevo && (
-        <ModalProductoNuevo base={productoNuevo.base} usados={usados} categorias={categorias} ubicaciones={ubicaciones} opciones={opciones}
+        <ModalProductoNuevo base={productoNuevo.base} ubicacionInicial={ubicacionInicial} usados={usados} categorias={categorias} ubicaciones={ubicaciones} opciones={opciones}
           onGuardar={agregarNuevo} onCerrar={() => setProductoNuevo(null)} />
       )}
       {confirmando && (

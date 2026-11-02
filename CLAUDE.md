@@ -24,10 +24,10 @@ React 19 + Vite + react-router 7 + lucide-react. Despliegue automático en Verce
 - **Documentos (ingresos y salidas):** las líneas se calculan y validan con `src/lib/documentos.js`. Los formularios están en `src/pages/movimientos/` y el comprobante imprimible en `src/pages/Comprobante.jsx` (`/documentos/:id`). Lo que no se imprime lleva la clase `.no-imprimir`.
 - **Solicitudes SBO:** `src/pages/Solicitudes.jsx` reúne `src/pages/solicitudes/` (FormSolicitud, DetalleSolicitud, ListaSolicitudes). Los estados, las acciones y los textos calculados están en `src/lib/solicitudes.js`. La remisión imprimible está en `src/pages/Remision.jsx` (`/solicitudes/:codigo/remision`). `/solicitudes?codigo=` abre el detalle.
 - **Dashboard:** `src/pages/Dashboard.jsx` lee todo de `GET /api/dashboard`. Las alertas enlazan a listas filtradas por URL: el Inventario lee `?q`, `?sinUbicar=1` y `?bajoMinimo=1`, y Solicitudes lee `?codigo`, `?estado`, `?atrasada=1` y `?porVencer=1`.
+- **Mapa de Bodega:** `src/pages/InventarioMapa.jsx` lee `GET /api/mapa`. `?ubicacion=` elige el hueco y `?q=` busca. Las estanterías se administran en `src/pages/configuracion/PestanaEstanterias.jsx` (Configuración → Estanterías). "Ingresar aquí" abre `/movimientos?pestana=ingreso&ubicacion=`. Sin capacidad ni porcentajes.
 - **Formatos:** fechas, horas y números siempre con `src/lib/formato.js` (es-CO, America/Bogota, miles con punto).
 - **Colores:** los de acciones y estados de SBO salen de `src/lib/tonos.js`.
 - **Título de pestaña:** se define en `RUTAS` de `App.jsx`.
 
 ## No tocar
-- `src/pages/InventarioMapa.jsx`: lo hace otro equipo.
 - `src/hooks/useScanner.js` y `scanDetector.js`: guardados y desconectados. No integrarlos.

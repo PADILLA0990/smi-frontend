@@ -380,6 +380,64 @@ p { margin: 0; }
 .zonas__valor small { font-size: var(--fs-xs); font-weight: 400; color: var(--texto-tenue); }
 .zonas__detalle { color: var(--texto-tenue); font-size: var(--fs-xs); }
 
+/* ---------- Mapa de Bodega ---------- */
+.mapa-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px 16px; }
+.mapa-buscar { display: flex; align-items: center; gap: 8px; flex: 1 1 280px; max-width: 420px; color: var(--texto-tenue); }
+.mapa-buscar .input { flex: 1; }
+.mapa-buscar__resultado { color: var(--texto-suave); font-size: var(--fs-sm); }
+.mapa-leyenda { display: flex; gap: 14px; margin-left: auto; color: var(--texto-suave); font-size: var(--fs-xs); }
+.mapa-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.hueco-muestra { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--borde-campo); background: var(--superficie); display: inline-block; }
+.hueco-muestra--ocupado { background: #dbeafe; border-color: #1e40af; }
+.hueco-muestra--resaltado { background: #fef3c7; border: 2px solid #d97706; }
+
+.mapa { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.mapa__lateral { display: grid; gap: 16px; position: sticky; top: 16px; }
+.mapa__lateral > .card { margin-bottom: 0; }
+.mapa-zona + .mapa-zona { margin-top: 8px; }
+.mapa-zona > .seccion-titulo { margin-top: 4px; }
+.mapa-zona__racks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.mapa-zona__areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 12px; }
+
+.rack { margin-bottom: 0; padding: 14px 16px; }
+.rack__cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+.rack__titulo { font-size: var(--fs-md); font-weight: 700; color: var(--navy-800); }
+.rack__calle { color: var(--texto-suave); font-size: var(--fs-xs); }
+.rack__cuadricula { display: grid; gap: 6px; overflow-x: auto; }
+.rack__fila { display: grid; gap: 6px; align-items: stretch; }
+.rack__nivel { color: var(--texto-suave); font-size: var(--fs-xs); align-self: center; white-space: nowrap; }
+
+.hueco { display: grid; place-items: center; gap: 0; min-height: 44px; padding: 4px 2px; border-radius: var(--radio-sm); border: 1px solid var(--linea); background: var(--superficie); cursor: pointer; font: inherit; color: var(--texto-tenue); }
+.hueco:hover { border-color: var(--navy-700); }
+.hueco:focus-visible { outline: 3px solid var(--foco); outline-offset: 1px; }
+.hueco--ocupado { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+.hueco--resaltado { background: #fef3c7; border: 2px solid #d97706; color: #78350f; }
+.hueco--elegido { outline: 3px solid var(--navy-800); outline-offset: 1px; }
+.hueco__valor { font-weight: 700; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.hueco__numero { font-size: 11px; line-height: 1.1; }
+
+.area { text-align: left; display: grid; gap: 2px; padding: 10px 12px; border-radius: var(--radio); border: 1px dashed var(--borde-campo); background: var(--superficie); cursor: pointer; font: inherit; color: var(--texto); }
+.area--ocupada { border-style: solid; background: #eff6ff; }
+.area__nombre { font-weight: 700; color: var(--navy-800); }
+.area__valor { font-size: var(--fs-xs); color: var(--texto-suave); }
+
+.detalle-hueco__codigo { display: inline-block; font-family: ui-monospace, Consolas, monospace; font-size: var(--fs-lg); font-weight: 700; padding: 6px 12px; border-radius: var(--radio-sm); background: var(--superficie-suave); border: 1px solid var(--linea); color: var(--navy-800); }
+.detalle-hueco .texto-suave { margin: 6px 0 10px; font-size: var(--fs-sm); }
+.detalle-hueco__vacio { color: var(--texto-suave); margin-bottom: 10px; }
+.detalle-hueco__productos { list-style: none; margin: 0 0 12px; padding: 0; }
+.detalle-hueco__productos li { padding: 10px 0; border-top: 1px solid var(--linea); }
+.detalle-hueco__fila { display: flex; justify-content: space-between; gap: 8px; }
+.detalle-hueco__unidades { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.detalle-hueco__meta { color: var(--texto-suave); font-size: var(--fs-xs); margin-top: 2px; }
+.detalle-hueco__acciones { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.detalle-hueco__ingresar { width: 100%; justify-content: center; }
+.fila-resaltada { background: #fef3c7; }
+
+@media (max-width: 1100px) {
+  .mapa { grid-template-columns: minmax(0, 1fr); }
+  .mapa__lateral { position: static; order: -1; }
+}
+
 /* ---------- Login ---------- */
 .login { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--navy-800); }
 .login__caja { width: 100%; max-width: 400px; }
