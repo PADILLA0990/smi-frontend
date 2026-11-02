@@ -173,7 +173,8 @@ export default function Inventario() {
   const puede = usePuede()
   const [parametrosUrl] = useSearchParams()
   const [texto, setTexto] = useState(parametrosUrl.get('q') || '')
-  const [filtros, setFiltros] = useState(FILTROS_VACIOS)
+  // ?sinUbicar=1 y ?bajoMinimo=1 llegan desde las alertas del Dashboard
+  const [filtros, setFiltros] = useState(() => ({ ...FILTROS_VACIOS, sinUbicar: parametrosUrl.get('sinUbicar') === '1', bajoMinimo: parametrosUrl.get('bajoMinimo') === '1' }))
   const [orden, setOrden] = useState({ id: 'codigo_producto', dir: 'asc' })
   const [pagina, setPagina] = useState(1)
   const [editando, setEditando] = useState(null)

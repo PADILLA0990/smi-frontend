@@ -20,7 +20,13 @@ export default function Solicitudes() {
   const [productos, setProductos] = useState([])
   const [alistadores, setAlistadores] = useState([])
   const [detalle, setDetalle] = useState(null)
-  const [filtros, setFiltros] = useState(FILTROS_SBO_VACIOS)
+  // ?estado=, ?atrasada=1 y ?porVencer=1 llegan desde el Dashboard
+  const [filtros, setFiltros] = useState(() => ({
+    ...FILTROS_SBO_VACIOS,
+    estado: parametrosUrl.get('estado') || '',
+    atrasada: parametrosUrl.get('atrasada') === '1',
+    porVencer: parametrosUrl.get('porVencer') === '1'
+  }))
   const [texto, setTexto] = useState('')
   const [pagina, setPagina] = useState(1)
   const lista = useConsultaPaginada('/api/solicitudes', { pagina, porPagina: 20, q: texto.trim(), ...filtros })

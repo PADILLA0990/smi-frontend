@@ -334,6 +334,51 @@ p { margin: 0; }
 .kpi__icono { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
 .kpi__titulo { color: var(--texto-suave); font-size: var(--fs-sm); }
 .kpi__valor { color: var(--texto); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi__detalle { color: var(--texto-tenue); font-size: var(--fs-xs); }
+.kpi__icono--navy { background: #e0e7ff; color: var(--navy-800); }
+.kpi__icono--ok   { background: #dcfce7; color: var(--exito); }
+.kpi__icono--ambar { background: #fef3c7; color: var(--aviso); }
+.kpi__icono--rojo  { background: #fee2e2; color: var(--peligro); }
+.kpi--enlace { text-decoration: none; color: inherit; border-left: 4px solid transparent; transition: box-shadow .15s, transform .15s; }
+.kpi--enlace:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(15, 34, 62, 0.22); }
+.kpi--enlace:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+.kpi--ambar { border-left-color: #d97706; }
+.kpi--rojo  { border-left-color: var(--peligro); }
+.seccion-titulo { color: var(--texto-sobre-navy); font-size: var(--fs-md); font-weight: 700; margin: 22px 0 10px; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.dashboard-grid > .card { margin-bottom: 0; }
+.dashboard-grid__ancho { grid-column: 1 / -1; }
+@media (max-width: 1000px) { .dashboard-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Barras horizontales de una serie: pista recesiva, barra navy con extremo redondeado de 4px */
+.barras { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.barras__fila { display: grid; grid-template-columns: minmax(90px, 30%) 1fr auto; align-items: center; gap: 10px; padding: 2px 0; }
+.barras__fila:hover .barras__barra { background: var(--navy-700); }
+.barras__etiqueta { color: var(--texto-suave); font-size: var(--fs-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barras__pista { height: 14px; background: var(--superficie-suave); border-radius: 0 4px 4px 0; }
+.barras__barra { display: block; height: 100%; background: var(--navy-800); border-radius: 0 4px 4px 0; }
+.barras__valor { color: var(--texto); font-weight: 600; font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; }
+
+.conteo-estados { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
+.conteo-estados__fila { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: var(--radio-sm); text-decoration: none; color: inherit; border: 1px solid var(--linea); }
+.conteo-estados__fila:hover { background: var(--superficie-suave); }
+.conteo-estados__valor { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.lista-alertas, .lista-movimientos { list-style: none; margin: 0; padding: 0; }
+.lista-alertas li + li, .lista-movimientos li + li { border-top: 1px solid var(--linea); }
+.lista-alertas__fila { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 4px; text-decoration: none; color: inherit; flex-wrap: wrap; }
+.lista-alertas__fila:hover { background: var(--superficie-suave); }
+.lista-alertas__insignias { display: flex; gap: 6px; flex-wrap: wrap; }
+.lista-movimientos li { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; padding: 8px 0; align-items: center; }
+.lista-movimientos__texto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.lista-movimientos__meta { grid-column: 2; color: var(--texto-tenue); font-size: var(--fs-xs); }
+
+.zonas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.zonas__item { border: 1px solid var(--linea); border-radius: var(--radio); padding: 10px 12px; display: grid; }
+.zonas__nombre { color: var(--texto-suave); font-size: var(--fs-sm); }
+.zonas__valor { font-size: var(--fs-lg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.zonas__valor small { font-size: var(--fs-xs); font-weight: 400; color: var(--texto-tenue); }
+.zonas__detalle { color: var(--texto-tenue); font-size: var(--fs-xs); }
 
 /* ---------- Login ---------- */
 .login { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--navy-800); }
