@@ -15,6 +15,7 @@ import { useLista, useOpciones } from '../lib/catalogos'
 import { useConsultaPaginada } from '../lib/paginado'
 import { tonoAccion, TONO_ESTADO_SBO, ETIQUETA_ESTADO_SBO } from '../lib/tonos'
 import { formatearNumero, formatearFecha, formatearFechaHora } from '../lib/formato'
+import { PATRON_CODIGO } from '../lib/documentos'
 
 const TONO_CONDICION = { PERFECTO: 'verde', BUENO: 'azul', DETERIORO: 'ambar', DANADO: 'rojo' }
 const POR_PAGINA = 15
@@ -22,6 +23,7 @@ const FILTROS_VACIOS = { categoriaId: '', ubicacion: '', condicion: '', estado: 
 
 // Edición de datos descriptivos (no cambia stock ni ubicación); queda en el historial como EDICIÓN
 function ModalEditar({ producto, opciones, categorias, onCerrar, onGuardado }) {
+  const codificado = PATRON_CODIGO.test(producto.codigo_producto || '')
   const inicial = {
     descripcion: producto.descripcion, categoriaId: producto.categoriaId ? String(producto.categoriaId) : '',
     condicion: producto.condicion || '', talla: producto.talla || '', grupo: producto.grupo || '',
@@ -61,14 +63,15 @@ function ModalEditar({ producto, opciones, categorias, onCerrar, onGuardado }) {
         <Campo etiqueta="Descripción" tamano="completo">
           <input className="input" value={form.descripcion} maxLength={200} required onChange={e => setForm({ ...form, descripcion: e.target.value })} />
         </Campo>
+        {codificado && <p className="aviso-info campo--completo" style={{ margin: 0 }}>El código {producto.codigo_producto} lleva la categoría y la condición: no se cambian aquí. Para otra condición, ingrese el artículo como producto nuevo (“otra condición”).</p>}
         <Campo etiqueta="Categoría">
-          <select className="select" value={form.categoriaId} required onChange={e => setForm({ ...form, categoriaId: e.target.value })}>
+          <select className="select" value={form.categoriaId} required disabled={codificado} onChange={e => setForm({ ...form, categoriaId: e.target.value })}>
             {!form.categoriaId && <option value="">{producto.categoria} (sin enlazar)</option>}
             {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
         </Campo>
         <Campo etiqueta="Condición">
-          <select className="select" value={form.condicion} onChange={e => setForm({ ...form, condicion: e.target.value })}>
+          <select className="select" value={form.condicion} disabled={codificado} onChange={e => setForm({ ...form, condicion: e.target.value })}>
             <option value="">Sin especificar</option>
             {Object.entries(opciones.condiciones).map(([v, et]) => <option key={v} value={v}>{et}</option>)}
           </select>

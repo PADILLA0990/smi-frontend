@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert'
-import { lineaVacia, unidadesDe, resumenLineas, problemasLineas, cuerpoLineas, codigoLibre } from './documentos.js'
+import { lineaVacia, unidadesDe, resumenLineas, problemasLineas, cuerpoLineas, codigoLibre, codigoHermano } from './documentos.js'
 
 const unidades = [{ id: 4, nombre: 'Caja', factor: 20 }]
 const producto = { codigo_producto: 'ROP-005', cantidad: 30, cantidad_reservada: 5 }
@@ -37,4 +37,11 @@ test('Código sugerido libre dentro del documento', () => {
   assert.strictEqual(codigoLibre('ROP-006', ['rop-006', 'ROP-007']), 'ROP-008')
   assert.strictEqual(codigoLibre('ROP-099', ['ROP-099']), 'ROP-100')
   assert.strictEqual(codigoLibre('SIN-NUMERO', ['SIN-NUMERO']), 'SIN-NUMERO')
+})
+
+test('codigoHermano: misma base con el sufijo del nuevo estado', () => {
+  assert.equal(codigoHermano('001-RCM-B', 'DETERIORO'), '001-RCM-D')
+  assert.equal(codigoHermano('012-TCD-P', 'DANADO'), '012-TCD-X')
+  assert.equal(codigoHermano('ROP-001', 'BUENO'), '')
+  assert.equal(codigoHermano('001-RCM-B', 'OTRO'), '')
 })

@@ -23,7 +23,7 @@ function Rack({ rack, seleccion, resaltados, onElegir }) {
   const filas = []
   for (let i = 0; i < rack.celdas.length; i += rack.huecos) filas.push(rack.celdas.slice(i, i + rack.huecos))
   return (
-    <section className="card rack" aria-label={`Rack ${rack.rack}`}>
+    <section className={`card rack ${rack.huecos > 4 ? 'rack--ancho' : ''}`} aria-label={`Rack ${rack.rack}`}>
       <header className="rack__cabecera">
         <div>
           <h3 className="rack__titulo">Rack {rack.rack}</h3>

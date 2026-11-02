@@ -400,6 +400,8 @@ p { margin: 0; }
 .mapa-zona__areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 12px; }
 
 .rack { margin-bottom: 0; padding: 14px 16px; }
+.rack--ancho { grid-column: span 2; }
+@media (max-width: 700px) { .rack--ancho { grid-column: auto; } }
 .rack__cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
 .rack__titulo { font-size: var(--fs-md); font-weight: 700; color: var(--navy-800); }
 .rack__calle { color: var(--texto-suave); font-size: var(--fs-xs); }
@@ -566,3 +568,25 @@ textarea.input { resize: vertical; min-height: 0; font: inherit; }
   .comprobante__tabla tr { break-inside: avoid; }
   .comprobante__firmas { break-inside: avoid; }
 }
+.input--codigo { font-family: ui-monospace, Consolas, monospace; font-weight: 700; letter-spacing: .5px; background: var(--superficie-suave); }
+
+/* ---------- Codificación (Configuración) ---------- */
+.codif-categorias { display: flex; flex-direction: column; gap: 8px; }
+.codif-categoria { border: 1px solid var(--borde, #d7dce5); border-radius: 8px; background: #fff; }
+.codif-categoria > summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; cursor: pointer; list-style: none; }
+.codif-categoria > summary::-webkit-details-marker { display: none; }
+.codif-categoria[open] > summary { border-bottom: 1px solid var(--borde, #d7dce5); }
+.codif-categoria__nombre { font-weight: 600; }
+.codif-categoria__editar { margin-left: auto; }
+.codif-letra { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 4px; border-radius: 4px; background: #e8eef8; color: #1b2a4a; font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
+.codif-letra--grande { min-width: 32px; height: 32px; font-size: 1.1rem; }
+.codif-niveles { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; padding: 12px; }
+.codif-nivel__titulo { margin: 0 0 8px; font-size: .95rem; }
+.codif-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.codif-lista li { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.codif-lista__nombre { flex: 1; }
+.codif-lista--inactiva .codif-lista__nombre { text-decoration: line-through; color: #5b6475; }
+.codif-lista__acciones { display: inline-flex; gap: 2px; }
+.codif-agregar { display: flex; gap: 6px; margin-top: 8px; }
+.codif-agregar .input { flex: 1; min-width: 0; }
+.codif-agregar__letra { flex: 0 0 52px !important; text-align: center; text-transform: uppercase; }

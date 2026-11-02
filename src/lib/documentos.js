@@ -66,3 +66,13 @@ export function codigoLibre(codigo, usados) {
   while (ocupado(candidato)) candidato = `${m[1]}${String(++n).padStart(m[2].length, '0')}`
   return candidato
 }
+
+// Codificación 001-RCM-B (docs/CODIFICACION.md del backend): consecutivo, tres letras y estado
+export const PATRON_CODIGO = /^(\d{3})-([A-Z]{3})-([PBDX])$/
+export const SUFIJO_CONDICION = { PERFECTO: 'P', BUENO: 'B', DETERIORO: 'D', DANADO: 'X' }
+
+// El mismo artículo en otro estado comparte la base: 001-RCM-B → 001-RCM-D
+export function codigoHermano(codigo, condicion) {
+  const m = PATRON_CODIGO.exec(codigo || '')
+  return m && SUFIJO_CONDICION[condicion] ? `${m[1]}-${m[2]}-${SUFIJO_CONDICION[condicion]}` : ''
+}
