@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, ArrowRightLeft, PackageSearch, History, Settings, LogOut, Menu, ClipboardList, Map as MapIcon, Clock, Loader2, Users, KeyRound, ChevronDown, Lock, AlertCircle, Route as RouteIcon } from 'lucide-react'
+import { LayoutDashboard, ArrowRightLeft, PackageSearch, History, Settings, LogOut, Menu, ClipboardList, Map as MapIcon, Clock, Loader2, Users, KeyRound, ChevronDown, Lock, AlertCircle, Route as RouteIcon, BarChart3, Scale } from 'lucide-react'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Inventario from './pages/Inventario'
@@ -14,14 +14,19 @@ import Comprobante from './pages/Comprobante'
 import UsuariosPagina from './pages/Usuarios'
 import Novedades from './pages/Novedades'
 import Trazabilidad from './pages/Trazabilidad'
+import Conciliacion from './pages/Conciliacion'
 import CambiarPassword from './pages/CambiarPassword'
 import Modal from './components/ui/Modal'
 import EmptyState from './components/ui/EmptyState'
 import Card from './components/ui/Card'
+import { SkeletonTabla } from './components/ui/Skeleton'
 import { suscribirConexion, estaConectando } from './lib/conexion'
 import { formatearFecha, formatearHora } from './lib/formato'
 import { useSesion, usePuede, ETIQUETA_ROL } from './lib/auth'
 import logoBab from './assets/logo-bab.png'
+
+// Indicadores trae Recharts: se carga solo al abrir la página
+const Indicadores = lazy(() => import('./pages/Indicadores'))
 
 const NOMBRE_APP = 'SMI-ControlBAB'
 
@@ -34,6 +39,8 @@ const RUTAS = [
   { ruta: '/inventario-mapa', icono: MapIcon, etiqueta: 'Mapa de Bodega', titulo: 'Mapa de Bodega' },
   { ruta: '/novedades', icono: AlertCircle, etiqueta: 'Novedades', titulo: 'Novedades' },
   { ruta: '/trazabilidad', icono: RouteIcon, etiqueta: 'Trazabilidad', titulo: 'Trazabilidad' },
+  { ruta: '/indicadores', icono: BarChart3, etiqueta: 'Indicadores', titulo: 'Indicadores' },
+  { ruta: '/conciliacion', icono: Scale, etiqueta: 'Conciliación', titulo: 'Conciliación' },
   { ruta: '/historial', icono: History, etiqueta: 'Historial', titulo: 'Historial de Movimientos' },
   { ruta: '/usuarios', icono: Users, etiqueta: 'Usuarios', titulo: 'Gestión de usuarios', permiso: 'usuarios:gestionar' },
   { ruta: '/parametros', icono: Settings, etiqueta: 'Configuración', titulo: 'Configuración' }
@@ -196,6 +203,8 @@ function App() {
               <Route path="/inventario-mapa" element={<InventarioMapa />} />
               <Route path="/novedades" element={<Novedades />} />
               <Route path="/trazabilidad" element={<Trazabilidad />} />
+              <Route path="/indicadores" element={<Suspense fallback={<Card><SkeletonTabla filas={6} columnas={3} /></Card>}><Indicadores /></Suspense>} />
+              <Route path="/conciliacion" element={<Conciliacion />} />
               <Route path="/historial" element={<Historial />} />
               <Route path="/documentos/:ref" element={<Comprobante />} />
               <Route path="/usuarios" element={<Protegida permiso="usuarios:gestionar"><UsuariosPagina /></Protegida>} />

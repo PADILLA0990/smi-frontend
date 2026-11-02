@@ -603,3 +603,40 @@ textarea.input { resize: vertical; min-height: 0; font: inherit; }
 .traza__evento--sbo::before { background: #1d4ed8; }
 .traza__fecha { color: #5b6475; }
 @media (max-width: 600px) { .traza__evento { grid-template-columns: 1fr; gap: 2px; } }
+
+/* ---------- Fase F: indicadores ---------- */
+.indicadores { display: grid; grid-template-columns: 290px 1fr; gap: 16px; align-items: start; }
+.indicadores__panel { position: sticky; top: 12px; padding: 14px; }
+.indicadores__periodo { display: grid; grid-template-columns: 96px 1fr; gap: 8px; margin-bottom: 12px; }
+.indicadores__periodo label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: #5b6475; }
+.indicadores__grupo { margin-top: 10px; }
+.indicadores__grupo h3 { margin: 0 0 4px; }
+.indicadores__grupo ul { list-style: none; margin: 0; padding: 0; }
+.indicadores__item { display: block; width: 100%; text-align: left; padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: #1b2a4a; font: inherit; cursor: pointer; }
+.indicadores__item:hover { background: #eef2f8; }
+.indicadores__item.activo { background: #1b2a4a; color: #fff; font-weight: 600; }
+.indicadores__item:focus-visible { outline: 2px solid #2a78d6; outline-offset: 1px; }
+.indicadores__contenido { min-width: 0; }
+.indicadores__destacado { margin: 0 0 8px; color: #5b6475; }
+.indicadores__destacado strong { font-size: 2rem; color: #1b2a4a; margin-right: 4px; }
+.indicadores__como { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; padding: 10px 12px; background: #f4f6fa; border-radius: 6px; color: #3b4456; }
+.indicadores__como p { margin: 0; }
+.indicadores__como svg { flex: 0 0 auto; margin-top: 2px; }
+.indicadores__datos { margin-top: 12px; }
+.indicadores__datos summary { cursor: pointer; font-weight: 600; color: #1b2a4a; }
+@media (max-width: 900px) {
+  .indicadores { grid-template-columns: 1fr; }
+  .indicadores__panel { position: static; }
+}
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 4px 0 8px; padding: 0; font-size: .85rem; color: #1b2a4a; }
+.leyenda li { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda__marca { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* ---------- Fase G: conciliación ---------- */
+.texto-peligro { color: var(--peligro); }
+.texto-exito { color: var(--exito); }
+.fila-clic { cursor: pointer; }
+.fila-clic:hover td { background: #f4f6fa; }
+.fila-activa td { background: #eaf1fb; }
+button.enlace { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+.conciliacion__aprobar { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e6e9ef; }
