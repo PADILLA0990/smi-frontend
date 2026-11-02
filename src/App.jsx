@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, ArrowRightLeft, PackageSearch, History, Settings, LogOut, Menu, ClipboardList, Map as MapIcon, Clock, Loader2, Users, KeyRound, ChevronDown, Lock } from 'lucide-react'
+import { LayoutDashboard, ArrowRightLeft, PackageSearch, History, Settings, LogOut, Menu, ClipboardList, Map as MapIcon, Clock, Loader2, Users, KeyRound, ChevronDown, Lock, AlertCircle, Route as RouteIcon } from 'lucide-react'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Inventario from './pages/Inventario'
@@ -12,6 +12,8 @@ import InventarioMapa from './pages/InventarioMapa'
 import Configuracion from './pages/Configuracion'
 import Comprobante from './pages/Comprobante'
 import UsuariosPagina from './pages/Usuarios'
+import Novedades from './pages/Novedades'
+import Trazabilidad from './pages/Trazabilidad'
 import CambiarPassword from './pages/CambiarPassword'
 import Modal from './components/ui/Modal'
 import EmptyState from './components/ui/EmptyState'
@@ -30,6 +32,8 @@ const RUTAS = [
   { ruta: '/solicitudes', icono: ClipboardList, etiqueta: 'Solicitudes SBO', titulo: 'Solicitudes SBO' },
   { ruta: '/inventario', icono: PackageSearch, etiqueta: 'Inventario Maestro', titulo: 'Inventario Maestro' },
   { ruta: '/inventario-mapa', icono: MapIcon, etiqueta: 'Mapa de Bodega', titulo: 'Mapa de Bodega' },
+  { ruta: '/novedades', icono: AlertCircle, etiqueta: 'Novedades', titulo: 'Novedades' },
+  { ruta: '/trazabilidad', icono: RouteIcon, etiqueta: 'Trazabilidad', titulo: 'Trazabilidad' },
   { ruta: '/historial', icono: History, etiqueta: 'Historial', titulo: 'Historial de Movimientos' },
   { ruta: '/usuarios', icono: Users, etiqueta: 'Usuarios', titulo: 'Gestión de usuarios', permiso: 'usuarios:gestionar' },
   { ruta: '/parametros', icono: Settings, etiqueta: 'Configuración', titulo: 'Configuración' }
@@ -190,6 +194,8 @@ function App() {
               <Route path="/solicitudes/:codigo/remision" element={<Remision />} />
               <Route path="/inventario" element={<Inventario />} />
               <Route path="/inventario-mapa" element={<InventarioMapa />} />
+              <Route path="/novedades" element={<Novedades />} />
+              <Route path="/trazabilidad" element={<Trazabilidad />} />
               <Route path="/historial" element={<Historial />} />
               <Route path="/documentos/:ref" element={<Comprobante />} />
               <Route path="/usuarios" element={<Protegida permiso="usuarios:gestionar"><UsuariosPagina /></Protegida>} />

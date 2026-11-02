@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { X, ListChecks, Printer, History, AlertTriangle, Clock } from 'lucide-react'
+import { X, ListChecks, Printer, History, AlertTriangle, Clock, AlertCircle, Repeat, Undo2, Route } from 'lucide-react'
 import { pedirJSON } from '../../api'
 import Card from '../../components/ui/Card'
 import Badge from '../../components/ui/Badge'
@@ -8,14 +8,19 @@ import { useConfirmar, useAvisar } from '../../lib/dialogos'
 import { TONO_ESTADO_SBO, ETIQUETA_ESTADO_SBO } from '../../lib/tonos'
 import { formatearFechaHora, formatearFechaCalendario, formatearFecha, formatearNumero } from '../../lib/formato'
 import { ACCIONES_SBO, formatearDuracion, textoVencimiento, esParcial } from '../../lib/solicitudes'
+import { usePuede } from '../../lib/auth'
+import { TIPOS_NOVEDAD, TONO_NOVEDAD, ESTADOS_CON_NOVEDAD, ESTADOS_SUSTITUCION } from '../../lib/novedades'
+import ModalNovedad from './ModalNovedad'
 
 export const BadgeEstado = ({ estado }) => <Badge tono={TONO_ESTADO_SBO[estado]}>{ETIQUETA_ESTADO_SBO[estado]}</Badge>
 
 // Detalle de una SBO: ítems (solicitado, reservado, alistado, despachado), avisos, tiempos,
 // acciones según el estado y el rol, y la línea de tiempo de estados.
 // El padre le pone una key por solicitud y estado: al cambiar, las cantidades y la nota empiezan de nuevo.
-export default function DetalleSolicitud({ solicitud, alistadores, onCambio, onCerrar }) {
+export default function DetalleSolicitud({ solicitud, alistadores, productos = [], onCambio, onCerrar }) {
   const confirmar = useConfirmar()
+  const puede = usePuede()
+  const [modal, setModal] = useState(null) // { modo, item }
   const avisar = useAvisar()
   const s = solicitud
   const [elegido, setAlistador] = useState('')
@@ -66,6 +71,14 @@ export default function DetalleSolicitud({ solicitud, alistadores, onCambio, onC
   }
 
   const fechaAlistada = ['ALISTADA', 'DESPACHADA'].includes(s.estado)
+  // Fase E: qué puede hacer el usuario con cada ítem
+  const accionesItem = (item) => [
+    ESTADOS_CON_NOVEDAD.includes(s.estado) && puede('sbo:alistar') && { modo: 'novedad', icono: AlertCircle, texto: 'Novedad' },
+    ESTADOS_SUSTITUCION.includes(s.estado) && puede('sbo:alistar') && { modo: 'sustituir', icono: Repeat, texto: 'Sustituir' },
+    s.estado === 'DESPACHADA' && puede('movimientos:registrar') && item.cantidad_alistada - (item.cantidad_devuelta || 0) > 0 && { modo: 'devolver', icono: Undo2, texto: 'Devolución' }
+  ].filter(Boolean)
+  const conAccionesItem = s.items.some(item => accionesItem(item).length > 0)
+  const novedades = s.novedades || []
 
   return (
     <Card
@@ -96,13 +109,13 @@ export default function DetalleSolicitud({ solicitud, alistadores, onCambio, onC
       <div className="tabla-scroll" style={{ marginBottom: 14 }}>
         <table className="tabla">
           <thead>
-            <tr><th>Referencia</th><th>Descripción</th><th className="num">Solicitado</th><th className="num">Reservado</th><th className="num">Alistado</th><th className="num">Despachado</th></tr>
+            <tr><th>Referencia</th><th>Descripción</th><th className="num">Solicitado</th><th className="num">Reservado</th><th className="num">Alistado</th><th className="num">Despachado</th>{conAccionesItem && <th className="no-imprimir">Novedades</th>}</tr>
           </thead>
           <tbody>
             {s.items.map(item => (
               <tr key={item.id}>
                 <td className="texto-codigo">{item.referencia}</td>
-                <td>{item.descripcion}</td>
+                <td>{item.descripcion}{item.codigo_original && <div className="texto-suave texto-sm">Sustituye a {item.codigo_original}</div>}</td>
                 <td className="num">{formatearNumero(item.cantidad_solicitada)}</td>
                 <td className="num">{formatearNumero(item.cantidad_reservada)}</td>
                 <td className="num">
@@ -111,7 +124,18 @@ export default function DetalleSolicitud({ solicitud, alistadores, onCambio, onC
                       value={cantidades[item.id] ?? ''} onChange={e => setCantidades({ ...cantidades, [item.id]: e.target.value })} style={{ width: 90, textAlign: 'right' }} />
                   ) : fechaAlistada ? formatearNumero(item.cantidad_alistada) : '—'}
                 </td>
-                <td className="num">{s.estado === 'DESPACHADA' ? <strong>{formatearNumero(item.cantidad_despachada)}</strong> : '—'}</td>
+                <td className="num">{s.estado === 'DESPACHADA' ? <><strong>{formatearNumero(item.cantidad_despachada)}</strong>{item.cantidad_devuelta > 0 && <div className="texto-suave texto-sm">devuelto {formatearNumero(item.cantidad_devuelta)}</div>}</> : '—'}</td>
+                {conAccionesItem && (
+                  <td className="no-imprimir">
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {accionesItem(item).map(a => (
+                        <button key={a.modo} type="button" className="btn btn--fantasma btn--sm" onClick={() => setModal({ modo: a.modo, item })}>
+                          <a.icono size={14} aria-hidden="true" /> {a.texto}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -157,7 +181,25 @@ export default function DetalleSolicitud({ solicitud, alistadores, onCambio, onC
         <Link className="btn btn--secundario btn--sm" to={`/historial?sbo=${encodeURIComponent(s.codigo_sbo)}`}>
           <History size={14} aria-hidden="true" /> Ver en el historial
         </Link>
+        <Link className="btn btn--secundario btn--sm" to={`/trazabilidad?codigo=${encodeURIComponent(s.codigo_sbo)}`}>
+          <Route size={14} aria-hidden="true" /> Trazabilidad
+        </Link>
       </div>
+
+      {novedades.length > 0 && (<>
+        <h3 className="etiqueta" style={{ marginBottom: 4 }}>Novedades ({novedades.length})</h3>
+        <ul className="lista-novedades">
+          {novedades.map(n => (
+            <li key={n.id}>
+              <Badge tono={TONO_NOVEDAD[n.tipo]}>{TIPOS_NOVEDAD[n.tipo]}</Badge>
+              <span className="texto-codigo">{n.codigo}</span>
+              <span>{formatearNumero(n.cantidad)} u. de <b>{n.codigo_producto}</b>{n.codigo_sustituto && <> → <b>{n.codigo_sustituto}</b></>}{n.motivo && <> · {n.motivo.nombre}</>}</span>
+              <span className="texto-suave">{n.descripcion}</span>
+              <span className="texto-suave texto-sm">{n.usuario} · {formatearFechaHora(n.fecha)}</span>
+            </li>
+          ))}
+        </ul>
+      </>)}
 
       <h3 className="etiqueta" style={{ marginBottom: 4 }}>Línea de tiempo</h3>
       <ol className="linea-tiempo">
@@ -170,6 +212,11 @@ export default function DetalleSolicitud({ solicitud, alistadores, onCambio, onC
           </li>
         ))}
       </ol>
+
+      {modal && (
+        <ModalNovedad solicitud={s} item={modal.item} modo={modal.modo} productos={productos}
+          onCerrar={() => setModal(null)} onListo={(data) => { setModal(null); onCambio(data) }} />
+      )}
     </Card>
   )
 }

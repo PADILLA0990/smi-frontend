@@ -109,6 +109,7 @@ export function ModalKardex({ producto, opciones, onCerrar }) {
     <Modal titulo={`${p.codigo_producto} · ${p.descripcion}`} icono={FileClock} onCerrar={onCerrar} ancho
       acciones={<>
         <Link className="btn btn--secundario" to={`/historial?codigo=${encodeURIComponent(p.codigo_producto)}`}>Ver en el historial</Link>
+        <Link className="btn btn--secundario" to={`/trazabilidad?codigo=${encodeURIComponent(p.codigo_producto)}`}>Trazabilidad</Link>
         <button type="button" className="btn btn--primario" onClick={onCerrar} data-autofoco>Cerrar</button>
       </>}>
       <dl className="ficha">

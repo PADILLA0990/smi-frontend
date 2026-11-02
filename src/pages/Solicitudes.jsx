@@ -66,6 +66,7 @@ export default function Solicitudes() {
           key={`${detalle.id}-${detalle.estado}-${detalle.eventos.length}`}
           solicitud={detalle}
           alistadores={alistadores}
+          productos={productos}
           onCambio={alCambiar}
           onCerrar={cerrar}
         />

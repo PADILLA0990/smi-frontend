@@ -21,7 +21,9 @@ export const ETIQUETA_ESTADO_SBO = {
 }
 
 export function tonoAccion(accion = '') {
-  if (accion.startsWith('INGRESO')) return 'verde'
+  if (accion.startsWith('INGRESO') || accion.startsWith('DEVOLUCI')) return 'verde'
+  if (accion.startsWith('NOVEDAD')) return 'ambar'
+  if (accion === 'SBO SUSTITUCIÓN') return 'indigo'
   if (accion.startsWith('SALIDA')) return 'naranja'
   if (accion.startsWith('REUBICACI')) return 'azul'
   if (accion.startsWith('AJUSTE')) return 'morado'
