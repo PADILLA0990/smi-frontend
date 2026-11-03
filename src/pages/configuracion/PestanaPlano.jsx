@@ -60,9 +60,9 @@ function ModalElemento({ elemento, onCerrar, onGuardado }) {
           <input className="input" value={form.etiqueta} required maxLength={60} onChange={e => cambiar({ etiqueta: e.target.value })} />
         </Campo>
         {form.tipo === 'AREA' && (
-          <Campo etiqueta="Ubicación del área" ayuda="Al hacer clic en el plano se ve lo que hay en ella." tamano="completo">
+          <Campo etiqueta="Ubicación del área" ayuda="Al hacer clic en el plano se ve lo que hay en ella. Sin enlazar = área de trabajo donde no se guarda producto (p. ej. Alistamiento)." tamano="completo">
             <select className="select" value={form.ubicacion} onChange={e => cambiar({ ubicacion: e.target.value })}>
-              <option value="">Sin enlazar</option>
+              <option value="">Sin enlazar (área de trabajo)</option>
               {areas.map(u => <option key={u.id} value={u.codigo}>{u.codigo}{u.nombre ? ` · ${u.nombre}` : ''}</option>)}
             </select>
           </Campo>

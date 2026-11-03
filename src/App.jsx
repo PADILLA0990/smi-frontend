@@ -11,6 +11,7 @@ import Remision from './pages/Remision'
 import InventarioMapa from './pages/InventarioMapa'
 import Configuracion from './pages/Configuracion'
 import Comprobante from './pages/Comprobante'
+import Demarcacion from './pages/Demarcacion'
 import UsuariosPagina from './pages/Usuarios'
 import Novedades from './pages/Novedades'
 import Trazabilidad from './pages/Trazabilidad'
@@ -207,6 +208,7 @@ function App() {
               <Route path="/conciliacion" element={<Conciliacion />} />
               <Route path="/historial" element={<Historial />} />
               <Route path="/documentos/:ref" element={<Comprobante />} />
+              <Route path="/demarcacion" element={<Demarcacion />} />
               <Route path="/usuarios" element={<Protegida permiso="usuarios:gestionar"><UsuariosPagina /></Protegida>} />
               <Route path="/parametros" element={<Configuracion />} />
               <Route path="*" element={<Navigate to="/" />} />

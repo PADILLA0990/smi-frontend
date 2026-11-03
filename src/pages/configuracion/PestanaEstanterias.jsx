@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Warehouse, Plus, Pencil, Power, Inbox, Wand2, Map as MapIcon } from 'lucide-react'
+import { Warehouse, Plus, Pencil, Power, Inbox, Wand2, Map as MapIcon, Tags } from 'lucide-react'
 import { pedirJSON } from '../../api'
 import Card from '../../components/ui/Card'
 import Campo from '../../components/ui/Campo'
@@ -147,13 +147,17 @@ export default function PestanaEstanterias() {
   const completarPlano = async () => {
     const ok = await confirmar({
       titulo: 'Completar con la distribución',
-      mensaje: 'Agrega a los racks ya creados lo que les falte: el hueco de más del nivel 2 hacia arriba en la Zona 1 y su posición en el plano, y crea el plano de las zonas que no lo tengan. No cambia lo que ya se haya configurado.',
+      mensaje: 'Agrega a los racks ya creados lo que les falte: el hueco de más del nivel 2 hacia arriba en la Zona 1 y su posición en el plano, y crea el plano de las zonas que no lo tengan. Las mesas de alistamiento dejan de ser ubicaciones (no se guarda producto allí). No cambia lo demás que ya se haya configurado.',
       textoConfirmar: 'Completar'
     })
     if (!ok) return
     try {
       const r = await pedirJSON('/api/plano/completar', { method: 'POST', body: {} })
-      avisar(r.racks.length + r.elementos ? `Actualizados: ${r.racks.length} rack(s) y ${r.elementos} elemento(s) del plano.` : 'Ya estaba todo completo.')
+      const partes = []
+      if (r.racks.length + r.elementos) partes.push(`Actualizados: ${r.racks.length} rack(s) y ${r.elementos} elemento(s) del plano.`)
+      if (r.areas_retiradas?.length) partes.push(`Ya no son ubicaciones: ${r.areas_retiradas.join(', ')}.`)
+      if (r.areas_con_producto?.length) partes.push(`Reubique primero el producto de: ${r.areas_con_producto.join(', ')}.`)
+      avisar(partes.join(' ') || 'Ya estaba todo completo.', r.areas_con_producto?.length ? 'error' : undefined)
       recargar()
     } catch (err) {
       avisar(err.message, 'error')
@@ -189,6 +193,7 @@ export default function PestanaEstanterias() {
       subtitulo="Racks del Mapa de Bodega. Al guardar se generan sus huecos (Z1-A-2-04 = zona, rack, nivel, hueco). Las áreas sin estantería se manejan en Ubicaciones."
       acciones={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Link to="/inventario-mapa" className="btn btn--secundario"><MapIcon size={16} aria-hidden="true" /> Ver mapa</Link>
+        {datos?.length > 0 && <Link to="/demarcacion" className="btn btn--secundario"><Tags size={16} aria-hidden="true" /> Demarcación y etiquetas</Link>}
         {gestiona && datos?.length > 0 && <button className="btn btn--secundario" onClick={completarPlano}><Wand2 size={16} aria-hidden="true" /> Completar con la distribución</button>}
         {gestiona && <button className="btn btn--primario" onClick={() => setEditando({})}><Plus size={16} aria-hidden="true" /> Agregar</button>}
       </div>}>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Map as MapIcon, RefreshCw, Search, PackagePlus, MoveRight, FileClock, PackageSearch, Warehouse, Settings, MapPinOff } from 'lucide-react'
+import { Map as MapIcon, Tags, RefreshCw, Search, PackagePlus, MoveRight, FileClock, PackageSearch, Warehouse, Settings, MapPinOff } from 'lucide-react'
 import { pedirJSON } from '../api'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -188,9 +188,12 @@ export default function InventarioMapa() {
     <div>
       <PageHeader icono={MapIcon} titulo="Mapa de Bodega"
         subtitulo={r ? `${formatearNumero(r.estanterias)} estantería(s) · ${formatearNumero(r.huecos_ocupados)} de ${formatearNumero(r.huecos)} huecos con producto` : 'Estanterías y áreas de la bodega'}
-        acciones={<button type="button" className="btn btn--secundario btn--sm" onClick={actualizar} disabled={cargando}>
-          <RefreshCw size={14} aria-hidden="true" className={cargando ? 'girando' : ''} /> Actualizar
-        </button>} />
+        acciones={<>
+          <Link to="/demarcacion" className="btn btn--secundario btn--sm"><Tags size={14} aria-hidden="true" /> Demarcación y etiquetas</Link>
+          <button type="button" className="btn btn--secundario btn--sm" onClick={actualizar} disabled={cargando}>
+            <RefreshCw size={14} aria-hidden="true" className={cargando ? 'girando' : ''} /> Actualizar
+          </button>
+        </>} />
 
       <ErrorState mensaje={error} onReintentar={actualizar} />
 

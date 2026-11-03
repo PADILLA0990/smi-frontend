@@ -33,12 +33,12 @@ export default function PlanoZona({ zona, seleccion, resaltados, onRack, onArea 
         {zona.plano.filter(el => el.tipo === 'AREA').map(el => {
           const elegida = el.ubicacion && seleccion === el.ubicacion
           const resaltada = el.ubicacion && resaltados.has(el.ubicacion)
-          const clases = ['plano__area', el.unidades ? 'plano__area--ocupada' : '', elegida ? 'plano__elegido' : '', resaltada ? 'plano__resaltado' : ''].join(' ')
+          const clases = ['plano__area', el.ubicacion ? '' : 'plano__area--trabajo', el.unidades ? 'plano__area--ocupada' : '', elegida ? 'plano__elegido' : '', resaltada ? 'plano__resaltado' : ''].join(' ')
           const contenido = (
             <>
               <rect x={el.x} y={el.y} width={el.ancho} height={el.alto} rx="0.3" className={clases} />
-              <text x={el.x + el.ancho / 2} y={el.y + el.alto / 2 - (el.ubicacion ? 0.4 : 0)} className="plano__texto">{el.etiqueta}</text>
-              {el.ubicacion && <text x={el.x + el.ancho / 2} y={el.y + el.alto / 2 + 0.6} className="plano__texto plano__texto--suave">{el.unidades ? `${formatearNumero(el.unidades)} u.` : 'Vacía'}</text>}
+              <text x={el.x + el.ancho / 2} y={el.y + el.alto / 2 - 0.4} className="plano__texto">{el.etiqueta}</text>
+              <text x={el.x + el.ancho / 2} y={el.y + el.alto / 2 + 0.6} className="plano__texto plano__texto--suave">{el.ubicacion ? (el.unidades ? `${formatearNumero(el.unidades)} u.` : 'Vacía') : 'No se almacena'}</text>
             </>
           )
           return el.ubicacion
@@ -49,7 +49,7 @@ export default function PlanoZona({ zona, seleccion, resaltados, onRack, onArea 
                 {contenido}
               </g>
             )
-            : <g key={el.id}>{contenido}</g>
+            : <g key={el.id}><title>{`${el.etiqueta}: área de trabajo, no se guarda producto`}</title>{contenido}</g>
         })}
 
         {racks.map(e => {
@@ -107,7 +107,8 @@ export default function PlanoZona({ zona, seleccion, resaltados, onRack, onArea 
       <figcaption className="plano__leyenda">
         <span><i className="plano-muestra plano-muestra--rack" /> Rack (clic para ver sus huecos)</span>
         <span><i className="plano-muestra plano-muestra--ocupado" /> Con producto</span>
-        <span><i className="plano-muestra plano-muestra--area" /> Área</span>
+        <span><i className="plano-muestra plano-muestra--area" /> Área de almacenaje</span>
+        {zona.plano.some(el => el.tipo === 'AREA' && !el.ubicacion) && <span><i className="plano-muestra plano-muestra--trabajo" /> Área de trabajo (no se almacena)</span>}
         <span><i className="plano-muestra plano-muestra--entrada" /> Entrada</span>
         <span><i className="plano-muestra plano-muestra--puerta" /> Puerta</span>
         {sinPlano.length > 0 && <span className="texto-suave">Sin posición en el plano: {sinPlano.map(e => e.rack).join(', ')}</span>}
