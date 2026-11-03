@@ -2,7 +2,7 @@
 export const FONDO_RACK = 2
 export const LARGO_HUECO = 1.5
 
-// Huecos del nivel más ancho (en la Zona 1 los niveles 2 a 4 tienen uno más que el nivel 1)
+// Huecos del nivel más ancho (en la Zona 1 los niveles 2 y 3 tienen uno más que el nivel 1)
 export const maxHuecos = (rack) => Math.max(rack.huecos, rack.huecos_superiores || 0)
 
 // Rectángulo de un rack en el plano: 2 cuadros de fondo y 1,5 por hueco de largo

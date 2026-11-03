@@ -128,7 +128,7 @@ export default function PestanaEstanterias() {
   const cargarInicial = async () => {
     const ok = await confirmar({
       titulo: 'Cargar distribución inicial',
-      mensaje: 'Crea los racks A–I de la Zona 1 (4 niveles), el rack J de la Zona 2 (3 niveles) y las áreas de alistamiento, cajas, piso y exhibición. Solo crea lo que falte; luego se puede ajustar aquí.',
+      mensaje: 'Crea los racks A–I de la Zona 1 y el rack J de la Zona 2 (todos de 3 niveles) y las áreas de cajas, piso y exhibición (Alistamiento se dibuja como área de trabajo). Solo crea lo que falte; luego se puede ajustar aquí.',
       textoConfirmar: 'Cargar'
     })
     if (!ok) return
