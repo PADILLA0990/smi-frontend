@@ -76,8 +76,8 @@ export default function FormSolicitud({ productos, onCreada }) {
               onChange={nombre => setForm(f => ({ ...f, beneficiario: nombre }))}
             />
           </Campo>
-          <Campo etiqueta="Fecha requerida" tamano="angosto">
-            <input className="input" type="date" value={form.fecha_requerida} onChange={e => setForm({ ...form, fecha_requerida: e.target.value })} style={{ minWidth: 150 }} />
+          <Campo etiqueta="Fecha requerida" tamano="fecha">
+            <input className="input" type="date" value={form.fecha_requerida} onChange={e => setForm({ ...form, fecha_requerida: e.target.value })} />
           </Campo>
           <Campo etiqueta="Observaciones" tamano="completo">
             <input className="input" placeholder="Opcional" value={form.observaciones} onChange={e => setForm({ ...form, observaciones: e.target.value })} />

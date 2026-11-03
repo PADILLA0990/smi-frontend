@@ -18,19 +18,25 @@ function ModalEstanteria({ estanteria, onCerrar, onGuardado }) {
   const nueva = !estanteria
   const [form, setForm] = useState(() => ({
     zona: estanteria?.zona || 'Z1', rack: estanteria?.rack || '', calle: estanteria?.calle || '',
-    niveles: estanteria?.niveles ?? 4, huecos: estanteria?.huecos ?? 4, orden: estanteria?.orden ?? 0
+    niveles: estanteria?.niveles ?? 4, huecos: estanteria?.huecos ?? 4, huecos_superiores: estanteria?.huecos_superiores ?? '',
+    orden: estanteria?.orden ?? 0, plano_x: estanteria?.plano_x ?? '', plano_y: estanteria?.plano_y ?? '', plano_vertical: estanteria?.plano_vertical ?? true
   }))
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const cambiar = (campos) => setForm(f => ({ ...f, ...campos }))
   const codigo = `${form.zona || 'Z?'}-${form.rack || '?'}`
-  const total = Number(form.niveles) * Number(form.huecos) || 0
+  const superiores = Number(form.huecos_superiores) || Number(form.huecos)
+  const total = Number(form.niveles) >= 1 ? Number(form.huecos) + (Number(form.niveles) - 1) * superiores || 0 : 0
 
   const guardar = async (e) => {
     e.preventDefault()
     setGuardando(true)
     setError('')
-    const numeros = { niveles: Number(form.niveles), huecos: Number(form.huecos), orden: Number(form.orden) || 0 }
+    const opcional = (v) => (v === '' || v === null ? null : Number(v))
+    const numeros = {
+      niveles: Number(form.niveles), huecos: Number(form.huecos), huecos_superiores: opcional(form.huecos_superiores), orden: Number(form.orden) || 0,
+      plano_x: opcional(form.plano_x), plano_y: opcional(form.plano_y), plano_vertical: form.plano_vertical
+    }
     let cuerpo = nueva ? { zona: form.zona, rack: form.rack, calle: form.calle, ...numeros } : { calle: form.calle, ...numeros }
     if (!nueva) cuerpo = Object.fromEntries(Object.entries(cuerpo).filter(([k, v]) => String(v ?? '') !== String(estanteria[k] ?? '')))
     try {
@@ -66,11 +72,26 @@ function ModalEstanteria({ estanteria, onCerrar, onGuardado }) {
         <Campo etiqueta="Huecos por nivel *" ayuda="De 1 a 30." tamano="angosto">
           <input className="input" type="number" min={1} max={30} step={1} value={form.huecos} required onChange={e => cambiar({ huecos: e.target.value })} />
         </Campo>
+        <Campo etiqueta="Huecos desde el nivel 2" ayuda="Vacío si son iguales al nivel 1. En la Zona 1 hay uno más arriba." tamano="angosto">
+          <input className="input" type="number" min={1} max={30} step={1} value={form.huecos_superiores} placeholder={String(form.huecos || '')} onChange={e => cambiar({ huecos_superiores: e.target.value })} />
+        </Campo>
         <Campo etiqueta="Orden en el mapa" ayuda="Menor primero dentro de la zona." tamano="angosto">
           <input className="input" type="number" min={0} max={999} step={1} value={form.orden} onChange={e => cambiar({ orden: e.target.value })} />
         </Campo>
+        <Campo etiqueta="Plano: columna (X)" ayuda="En cuadros, desde la izquierda. Vacío: no sale en el plano." tamano="angosto">
+          <input className="input" type="number" min={0} max={200} step={0.1} value={form.plano_x} onChange={e => cambiar({ plano_x: e.target.value })} />
+        </Campo>
+        <Campo etiqueta="Plano: fila (Y)" ayuda="En cuadros, desde arriba." tamano="angosto">
+          <input className="input" type="number" min={0} max={200} step={0.1} value={form.plano_y} onChange={e => cambiar({ plano_y: e.target.value })} />
+        </Campo>
+        <Campo etiqueta="Plano: sentido" tamano="angosto">
+          <select className="select" value={form.plano_vertical ? 'v' : 'h'} onChange={e => cambiar({ plano_vertical: e.target.value === 'v' })}>
+            <option value="v">Vertical</option>
+            <option value="h">Horizontal</option>
+          </select>
+        </Campo>
         <p className="campo--completo texto-suave" style={{ margin: 0 }}>
-          Huecos: <b>{formatearNumero(total)}</b>, de <code>{codigo}-1-01</code> a <code>{codigo}-{form.niveles || '?'}-{String(form.huecos || '?').padStart(2, '0')}</code>.
+          Huecos: <b>{formatearNumero(total)}</b>, de <code>{codigo}-1-01</code> a <code>{codigo}-{form.niveles || '?'}-{String((Number(form.niveles) > 1 ? superiores : form.huecos) || '?').padStart(2, '0')}</code>.
           {!nueva && ' Si reduce niveles o huecos, los que sobran deben estar vacíos.'}
         </p>
       </form>
@@ -123,11 +144,28 @@ export default function PestanaEstanterias() {
     }
   }
 
+  const completarPlano = async () => {
+    const ok = await confirmar({
+      titulo: 'Completar con la distribución',
+      mensaje: 'Agrega a los racks ya creados lo que les falte: el hueco de más del nivel 2 hacia arriba en la Zona 1 y su posición en el plano, y crea el plano de las zonas que no lo tengan. No cambia lo que ya se haya configurado.',
+      textoConfirmar: 'Completar'
+    })
+    if (!ok) return
+    try {
+      const r = await pedirJSON('/api/plano/completar', { method: 'POST', body: {} })
+      avisar(r.racks.length + r.elementos ? `Actualizados: ${r.racks.length} rack(s) y ${r.elementos} elemento(s) del plano.` : 'Ya estaba todo completo.')
+      recargar()
+    } catch (err) {
+      avisar(err.message, 'error')
+    }
+  }
+
   const columnas = [
     { id: 'codigo', titulo: 'Estantería', fija: true, render: e => <strong>{e.codigo}</strong> },
     { id: 'calle', titulo: 'Calle', valor: e => e.calle || '', render: e => e.calle || '—' },
     { id: 'niveles', titulo: 'Niveles', alinear: 'derecha' },
-    { id: 'huecos', titulo: 'Huecos por nivel', alinear: 'derecha' },
+    { id: 'huecos', titulo: 'Huecos por nivel', alinear: 'derecha', valor: e => e.huecos, render: e => e.huecos_superiores && e.huecos_superiores !== e.huecos ? `${e.huecos} · ${e.huecos_superiores} desde el nivel 2` : e.huecos },
+    { id: 'plano', titulo: 'En el plano', valor: e => (e.plano_x === null ? '' : `${e.plano_x}, ${e.plano_y}`), render: e => (e.plano_x === null ? <span className="texto-suave">—</span> : `X ${e.plano_x} · Y ${e.plano_y}`) },
     { id: 'ubicaciones', titulo: 'Huecos', alinear: 'derecha' },
     { id: 'productos', titulo: 'Productos', alinear: 'derecha' },
     { id: 'orden', titulo: 'Orden', alinear: 'derecha' },
@@ -151,6 +189,7 @@ export default function PestanaEstanterias() {
       subtitulo="Racks del Mapa de Bodega. Al guardar se generan sus huecos (Z1-A-2-04 = zona, rack, nivel, hueco). Las áreas sin estantería se manejan en Ubicaciones."
       acciones={<div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Link to="/inventario-mapa" className="btn btn--secundario"><MapIcon size={16} aria-hidden="true" /> Ver mapa</Link>
+        {gestiona && datos?.length > 0 && <button className="btn btn--secundario" onClick={completarPlano}><Wand2 size={16} aria-hidden="true" /> Completar con la distribución</button>}
         {gestiona && <button className="btn btn--primario" onClick={() => setEditando({})}><Plus size={16} aria-hidden="true" /> Agregar</button>}
       </div>}>
       <ErrorState mensaje={error} onReintentar={recargar} />
@@ -161,7 +200,7 @@ export default function PestanaEstanterias() {
         </div>
       )}
       <DataTable
-        idTabla="estanterias"
+        idTabla="estanterias-v2"
         columnas={columnas}
         filas={error && !datos ? [] : datos}
         busqueda="Buscar estantería…"

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Settings, Warehouse, Barcode, Tags, Building2, HandHeart, ListChecks, Boxes, MapPin, SlidersHorizontal, Plus, Pencil, Power, Inbox } from 'lucide-react'
+import { Settings, Warehouse, Barcode, Tags, Building2, HandHeart, ListChecks, Boxes, MapPin, SlidersHorizontal, Plus, Pencil, Power, Inbox, LayoutGrid } from 'lucide-react'
 import { pedirJSON } from '../api'
 import PageHeader from '../components/ui/PageHeader'
 import Card from '../components/ui/Card'
@@ -15,6 +15,7 @@ import { usePuede } from '../lib/auth'
 import { useLista, useOpciones } from '../lib/catalogos'
 import { formatearNumero } from '../lib/formato'
 import PestanaEstanterias from './configuracion/PestanaEstanterias'
+import PestanaPlano from './configuracion/PestanaPlano'
 import PestanaCodificacion from './configuracion/PestanaCodificacion'
 
 // Definición de cada catálogo: campos del formulario y columnas de la tabla.
@@ -118,6 +119,7 @@ const CATALOGOS = {
 const PESTANAS = [
   ...Object.entries(CATALOGOS).map(([id, c]) => ({ id, etiqueta: c.etiqueta, icono: c.icono })),
   { id: 'estanterias', etiqueta: 'Estanterías', icono: Warehouse },
+  { id: 'plano', etiqueta: 'Plano', icono: LayoutGrid },
   { id: 'codificacion', etiqueta: 'Codificación', icono: Barcode },
   { id: 'parametros', etiqueta: 'Parámetros', icono: SlidersHorizontal }
 ]
@@ -311,7 +313,7 @@ export default function Configuracion() {
         ))}
       </div>
       <div role="tabpanel">
-        {actual === 'parametros' ? <PestanaParametros /> : actual === 'estanterias' ? <PestanaEstanterias /> : actual === 'codificacion' ? <PestanaCodificacion /> : <PestanaCatalogo key={actual} catalogo={actual} />}
+        {actual === 'parametros' ? <PestanaParametros /> : actual === 'estanterias' ? <PestanaEstanterias /> : actual === 'plano' ? <PestanaPlano /> : actual === 'codificacion' ? <PestanaCodificacion /> : <PestanaCatalogo key={actual} catalogo={actual} />}
       </div>
     </div>
   )

@@ -69,7 +69,7 @@ function NuevoConteo({ onCreado }) {
       <Campo etiqueta="Observaciones">
         <input className="input" maxLength={500} value={form.observaciones} onChange={e => setForm({ ...form, observaciones: e.target.value })} placeholder="Opcional" />
       </Campo>
-      <div style={{ alignSelf: 'flex-end' }}>
+      <div>
         <button type="submit" className="btn btn--primario" disabled={guardando}><Plus size={16} aria-hidden="true" /> {guardando ? 'Creando…' : 'Crear conteo'}</button>
       </div>
     </form>
@@ -200,7 +200,7 @@ function DetalleConteo({ conteo, onCambio, onCerrar }) {
           <Campo etiqueta="Observaciones">
             <input className="input" maxLength={500} value={observaciones} onChange={e => setObservaciones(e.target.value)} placeholder="Opcional" />
           </Campo>
-          <div style={{ display: 'flex', gap: 8, alignSelf: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 'calc(var(--fs-sm) * 1.5 + 5px)' }}>
             <button type="button" className="btn btn--primario" disabled={ocupado || cambiadas.length > 0 || conteo.resumen.contados === 0} onClick={aprobar}
               title={cambiadas.length > 0 ? 'Guarde el conteo antes de aprobar' : undefined}><CheckCircle2 size={16} aria-hidden="true" /> Aprobar ajustes</button>
             <button type="button" className="btn btn--peligro" disabled={ocupado} onClick={anular}><Ban size={16} aria-hidden="true" /> Anular</button>

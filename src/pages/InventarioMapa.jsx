@@ -13,17 +13,25 @@ import { useConfirmar, useAvisar } from '../lib/dialogos'
 import { useLista, useOpciones } from '../lib/catalogos'
 import { formatearNumero } from '../lib/formato'
 import { ModalKardex } from './Inventario'
+import PlanoZona from './mapa/PlanoZona'
+import { maxHuecos } from '../lib/plano'
 
 const normal = (t) => (t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const coincide = (p, q) => normal(p.codigo_producto).includes(q) || normal(p.descripcion).includes(q)
 
 // Una estantería de frente: filas de nivel (arriba el más alto) por huecos. Sin capacidad: solo qué hay.
-function Rack({ rack, seleccion, resaltados, onElegir }) {
+// Los niveles pueden tener distinta cantidad de huecos (en la Zona 1, uno más del nivel 2 hacia arriba).
+const idRack = (rack) => `rack-${rack.codigo}`
+function Rack({ rack, seleccion, resaltados, onElegir, destacado }) {
   const ocupados = rack.celdas.filter(c => c.productos.length > 0).length
+  const columnas = maxHuecos(rack)
   const filas = []
-  for (let i = 0; i < rack.celdas.length; i += rack.huecos) filas.push(rack.celdas.slice(i, i + rack.huecos))
+  for (const c of rack.celdas) {
+    if (filas.at(-1)?.[0].nivel !== c.nivel) filas.push([])
+    filas.at(-1).push(c)
+  }
   return (
-    <section className={`card rack ${rack.huecos > 4 ? 'rack--ancho' : ''}`} aria-label={`Rack ${rack.rack}`}>
+    <section id={idRack(rack)} className={`card rack ${columnas > 4 ? 'rack--ancho' : ''} ${destacado ? 'rack--destacado' : ''}`} aria-label={`Rack ${rack.rack}`}>
       <header className="rack__cabecera">
         <div>
           <h3 className="rack__titulo">Rack {rack.rack}</h3>
@@ -33,7 +41,7 @@ function Rack({ rack, seleccion, resaltados, onElegir }) {
       </header>
       <div className="rack__cuadricula" role="grid" aria-label={`Huecos del rack ${rack.rack}`}>
         {filas.map(fila => (
-          <div key={fila[0].nivel} className="rack__fila" role="row" style={{ gridTemplateColumns: `52px repeat(${rack.huecos}, minmax(34px, 1fr))` }}>
+          <div key={fila[0].nivel} className="rack__fila" role="row" style={{ gridTemplateColumns: `52px repeat(${columnas}, minmax(34px, 1fr))` }}>
             <span className="rack__nivel" role="rowheader">Nivel {fila[0].nivel}</span>
             {fila.map(c => {
               const n = c.productos.length
@@ -109,6 +117,7 @@ export default function InventarioMapa() {
   const [cargando, setCargando] = useState(false)
   const [busqueda, setBusqueda] = useState(parametrosUrl.get('q') || '')
   const [kardex, setKardex] = useState(null)
+  const [rackDestacado, setRackDestacado] = useState(null)
   const seleccion = parametrosUrl.get('ubicacion') || ''
 
   const cargar = useCallback(() => pedirJSON('/api/mapa')
@@ -165,6 +174,13 @@ export default function InventarioMapa() {
     }
   }
 
+  // Clic en un rack del plano: lleva a su vista de frente y la marca un momento
+  const irARack = (rack) => {
+    setRackDestacado(rack.codigo)
+    document.getElementById(idRack(rack))?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setTimeout(() => setRackDestacado(null), 2000)
+  }
+
   const ingresarAqui = (codigo) => navegar(`/movimientos?pestana=ingreso&ubicacion=${encodeURIComponent(codigo)}`)
   const r = mapa?.resumen
 
@@ -210,9 +226,10 @@ export default function InventarioMapa() {
           {mapa?.zonas.map(z => (
             <section key={z.zona} className="mapa-zona" aria-label={z.nombre}>
               <h2 className="seccion-titulo">{z.nombre}</h2>
+              <PlanoZona zona={z} seleccion={seleccion} resaltados={resaltados} onRack={irARack} onArea={elegir} />
               {z.estanterias.length > 0 && (
                 <div className="mapa-zona__racks">
-                  {z.estanterias.map(e => <Rack key={e.id} rack={e} seleccion={seleccion} resaltados={resaltados} onElegir={elegir} />)}
+                  {z.estanterias.map(e => <Rack key={e.id} rack={e} seleccion={seleccion} resaltados={resaltados} onElegir={elegir} destacado={rackDestacado === e.codigo} />)}
                 </div>
               )}
               {z.areas.length > 0 && (
