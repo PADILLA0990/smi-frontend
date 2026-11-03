@@ -35,29 +35,27 @@ export default function ListaDocumentos() {
   const { datos, total, error, recargar } = useConsultaPaginada('/api/documentos', { pagina, porPagina: POR_PAGINA, q: texto.trim(), ...filtros })
 
   const cambiar = (campo, valor) => { setFiltros(f => ({ ...f, [campo]: valor })); setPagina(1) }
-  const hayFiltros = texto || Object.values(filtros).some(Boolean)
+  const activos = Object.values(filtros).filter(Boolean).length
+  const hayFiltros = texto || activos > 0
 
   return (
     <Card titulo="Documentos registrados" icono={FileText} subtitulo="Haga clic en un documento para ver su comprobante e imprimirlo.">
       <ErrorState mensaje={error} onReintentar={recargar} />
-      <div className="filtros">
-        <select className="select" aria-label="Tipo de documento" value={filtros.tipo} onChange={e => cambiar('tipo', e.target.value)}>
-          <option value="">Ingresos y salidas</option>
-          <option value="INGRESO">Solo ingresos</option>
-          <option value="SALIDA">Solo salidas</option>
-        </select>
-        <label className="filtro-fecha">Desde <input className="input" type="date" value={filtros.desde} max={filtros.hasta || undefined} onChange={e => cambiar('desde', e.target.value)} /></label>
-        <label className="filtro-fecha">Hasta <input className="input" type="date" value={filtros.hasta} min={filtros.desde || undefined} onChange={e => cambiar('hasta', e.target.value)} /></label>
-        {hayFiltros && (
-          <button type="button" className="btn btn--secundario btn--sm" onClick={() => { setFiltros(FILTROS_VACIOS); setTexto(''); setPagina(1) }}>
-            <FilterX size={14} aria-hidden="true" /> Limpiar
-          </button>
-        )}
-      </div>
       <DataTable
         idTabla="documentos"
         columnas={columnas}
         filas={datos}
+        filtrosActivos={activos}
+        onLimpiarFiltros={() => { setFiltros(FILTROS_VACIOS); setPagina(1) }}
+        filtros={<>
+          <select className="select" aria-label="Tipo de documento" value={filtros.tipo} onChange={e => cambiar('tipo', e.target.value)}>
+            <option value="">Ingresos y salidas</option>
+            <option value="INGRESO">Solo ingresos</option>
+            <option value="SALIDA">Solo salidas</option>
+          </select>
+          <label className="filtro-fecha">Desde <input className="input" type="date" value={filtros.desde} max={filtros.hasta || undefined} onChange={e => cambiar('desde', e.target.value)} /></label>
+          <label className="filtro-fecha">Hasta <input className="input" type="date" value={filtros.hasta} min={filtros.desde || undefined} onChange={e => cambiar('hasta', e.target.value)} /></label>
+        </>}
         porPagina={POR_PAGINA}
         busqueda="Buscar por número, donante, organización, soporte o código de producto…"
         onFilaClick={d => navegar(`/documentos/${d.id}`)}

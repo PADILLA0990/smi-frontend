@@ -45,7 +45,7 @@ export default function Login() {
           {conectando && (
             <div className="aviso-info" role="status" style={{ marginBottom: 14 }}>
               <Loader2 size={18} className="girando" aria-hidden="true" />
-              <span>Despertando el servidor… La primera conexión después de un rato sin uso puede tardar hasta un minuto.</span>
+              <span>Iniciando el sistema… La primera conexión después de un rato sin uso puede tardar hasta un minuto.</span>
             </div>
           )}
           {aviso && !error && !conectando && (

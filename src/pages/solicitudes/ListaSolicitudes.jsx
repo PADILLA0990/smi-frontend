@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { ClipboardList, FilterX } from 'lucide-react'
 import Card from '../../components/ui/Card'
 import DataTable from '../../components/ui/DataTable'
@@ -34,8 +33,8 @@ const columnas = [
 export default function ListaSolicitudes({ datos, total, resumen, error, recargar, filtros, setFiltros, texto, setTexto, pagina, setPagina, alistadores, onAbrir, activa }) {
   const organizaciones = useLista('/api/catalogos/organizaciones').datos || []
   const cambiar = (campo, valor) => { setFiltros(f => ({ ...f, [campo]: valor })); setPagina(1) }
-  const hayFiltros = texto || Object.values(filtros).some(Boolean)
-  const [verFechas, setVerFechas] = useState(false)
+  const activos = Object.values(filtros).filter(Boolean).length
+  const hayFiltros = texto || activos > 0
 
   return (
     <Card titulo="Solicitudes" icono={ClipboardList}
@@ -43,38 +42,34 @@ export default function ListaSolicitudes({ datos, total, resumen, error, recarga
         ? `${formatearNumero(resumen.atrasadas)} atrasada(s) y ${formatearNumero(resumen.por_vencer)} por vencer en esta búsqueda.`
         : 'Haga clic en una solicitud para ver su detalle.'}>
       <ErrorState mensaje={error} onReintentar={recargar} />
-      <div className="filtros">
-        <select className="select" aria-label="Estado" value={filtros.estado} onChange={e => cambiar('estado', e.target.value)}>
-          <option value="">Todos los estados</option>
-          <option value="ACTIVAS">En curso (sin despachar)</option>
-          {ESTADOS_SBO.map(est => <option key={est} value={est}>{ETIQUETA_ESTADO_SBO[est]}</option>)}
-        </select>
-        <select className="select" aria-label="Organización" value={filtros.organizacionId} onChange={e => cambiar('organizacionId', e.target.value)}>
-          <option value="">Todas las organizaciones</option>
-          {organizaciones.map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}
-        </select>
-        <select className="select" aria-label="Alistador" value={filtros.alistador} onChange={e => cambiar('alistador', e.target.value)}>
-          <option value="">Todos los alistadores</option>
-          {alistadores.map(a => <option key={a.usuario} value={a.usuario}>{a.nombre}</option>)}
-        </select>
-        <label className="filtro-check"><input type="checkbox" checked={filtros.atrasada} onChange={e => cambiar('atrasada', e.target.checked)} /> Atrasadas</label>
-        <label className="filtro-check"><input type="checkbox" checked={filtros.porVencer} onChange={e => cambiar('porVencer', e.target.checked)} /> Por vencer</label>
-        {(verFechas || filtros.desde || filtros.hasta) ? <>
-          <label className="filtro-fecha">Desde <input className="input" type="date" value={filtros.desde} max={filtros.hasta || undefined} onChange={e => cambiar('desde', e.target.value)} /></label>
-          <label className="filtro-fecha">Hasta <input className="input" type="date" value={filtros.hasta} min={filtros.desde || undefined} onChange={e => cambiar('hasta', e.target.value)} /></label>
-        </> : <button type="button" className="btn btn--fantasma btn--sm" onClick={() => setVerFechas(true)}>Filtrar por fecha de creación</button>}
-        {hayFiltros && (
-          <button type="button" className="btn btn--secundario btn--sm" onClick={() => { setFiltros(FILTROS_SBO_VACIOS); setTexto(''); setPagina(1); setVerFechas(false) }}>
-            <FilterX size={14} aria-hidden="true" /> Limpiar
-          </button>
-        )}
-      </div>
       <DataTable
         idTabla="solicitudes-v2"
         columnas={columnas}
         filas={datos}
         porPagina={POR_PAGINA}
         busqueda="Buscar por SBO, organización o producto…"
+        filtrosActivos={activos}
+        onLimpiarFiltros={() => { setFiltros(FILTROS_SBO_VACIOS); setPagina(1) }}
+        filtros={<>
+          <select className="select" aria-label="Estado" value={filtros.estado} onChange={e => cambiar('estado', e.target.value)}>
+            <option value="">Todos los estados</option>
+            <option value="ACTIVAS">En curso (sin despachar)</option>
+            {ESTADOS_SBO.map(est => <option key={est} value={est}>{ETIQUETA_ESTADO_SBO[est]}</option>)}
+          </select>
+          <select className="select" aria-label="Organización" value={filtros.organizacionId} onChange={e => cambiar('organizacionId', e.target.value)}>
+            <option value="">Todas las organizaciones</option>
+            {organizaciones.map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}
+          </select>
+          <select className="select" aria-label="Alistador" value={filtros.alistador} onChange={e => cambiar('alistador', e.target.value)}>
+            <option value="">Todos los alistadores</option>
+            {alistadores.map(a => <option key={a.usuario} value={a.usuario}>{a.nombre}</option>)}
+          </select>
+          <label className="filtro-check"><input type="checkbox" checked={filtros.atrasada} onChange={e => cambiar('atrasada', e.target.checked)} /> Atrasadas</label>
+          <label className="filtro-check"><input type="checkbox" checked={filtros.porVencer} onChange={e => cambiar('porVencer', e.target.checked)} /> Por vencer</label>
+          <span className="panel-filtros__titulo">Fecha de creación</span>
+          <label className="filtro-fecha">Desde <input className="input" type="date" value={filtros.desde} max={filtros.hasta || undefined} onChange={e => cambiar('desde', e.target.value)} /></label>
+          <label className="filtro-fecha">Hasta <input className="input" type="date" value={filtros.hasta} min={filtros.desde || undefined} onChange={e => cambiar('hasta', e.target.value)} /></label>
+        </>}
         onFilaClick={s => onAbrir(s.id)}
         filaActiva={activa}
         servidor={{

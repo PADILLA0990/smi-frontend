@@ -224,8 +224,15 @@ p { margin: 0; }
 .badge--indigo  { background: #e0e7ff; color: #3730a3; }
 
 /* ---------- DataTable ---------- */
-.tabla-barra { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
-.tabla-buscar { position: relative; flex: 1 1 260px; max-width: 380px; }
+/* Barra de la tabla en una sola fila: búsqueda y Filtros a la izquierda, herramientas y Columnas a la derecha */
+.tabla-barra { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.tabla-barra__grupo { display: flex; gap: 10px; align-items: center; flex: 0 0 auto; }
+.tabla-barra__grupo--busqueda { flex: 1 1 auto; min-width: 0; }
+.tabla-buscar { position: relative; flex: 1 1 260px; max-width: 420px; min-width: 0; }
+@media (max-width: 640px) {
+  .tabla-barra { flex-wrap: wrap; }
+  .tabla-barra__grupo--busqueda { flex-basis: 100%; }
+}
 .tabla-buscar svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--texto-tenue); pointer-events: none; }
 .tabla-buscar .input { padding-left: 34px; }
 .tabla-scroll { overflow-x: auto; }
@@ -249,14 +256,27 @@ p { margin: 0; }
 }
 .paginacion { display: flex; align-items: center; gap: 6px; }
 
-.menu-columnas { position: relative; }
-.menu-columnas summary { list-style: none; }
-.menu-columnas summary::-webkit-details-marker { display: none; }
-.menu-columnas__lista {
-  position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 200px;
+/* Desplegables de la barra (Filtros, Columnas) */
+.desplegable { position: relative; }
+.desplegable summary { list-style: none; white-space: nowrap; }
+.desplegable summary::-webkit-details-marker { display: none; }
+.desplegable__panel {
+  position: absolute; top: calc(100% + 4px); z-index: 20; min-width: 200px;
   background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio-sm);
   box-shadow: var(--sombra); padding: 8px;
 }
+.tabla-barra .desplegable summary { min-height: 40px; }
+.desplegable--izquierda .desplegable__panel { left: 0; }
+.desplegable--derecha .desplegable__panel { right: 0; }
+.desplegable__contador {
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 2px;
+  border-radius: 9px; background: #fff; color: var(--navy-800); font-size: var(--fs-xs); font-weight: 700;
+}
+.panel-filtros { display: grid; gap: 10px; width: min(320px, calc(100vw - 48px)); padding: 6px; }
+.panel-filtros .select, .panel-filtros .input { width: 100%; min-width: 0; }
+.panel-filtros .filtro-fecha { display: grid; grid-template-columns: 52px 1fr; }
+.panel-filtros > .btn { justify-self: start; }
+.panel-filtros__titulo { margin-top: 4px; font-size: var(--fs-xs); font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .4px; }
 .menu-columnas__lista label { display: flex; gap: 8px; align-items: center; padding: 5px 6px; font-size: var(--fs-sm); cursor: pointer; }
 
 .texto-codigo { font-weight: 700; color: var(--navy-800); }
@@ -395,10 +415,11 @@ p { margin: 0; }
 .hueco-muestra--resaltado { background: #fef3c7; border: 2px solid #d97706; }
 
 .mapa { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
-.mapa__lateral { display: grid; gap: 16px; position: sticky; top: 16px; }
+/* El panel derecho empieza a la altura del primer plano (debajo del título "Zona 1": 4 + 20 + 10 px) */
+.mapa__lateral { display: grid; gap: 16px; position: sticky; top: 16px; margin-top: 34px; }
 .mapa__lateral > .card { margin-bottom: 0; }
 .mapa-zona + .mapa-zona { margin-top: 8px; }
-.mapa-zona > .seccion-titulo { margin-top: 4px; }
+.mapa-zona > .seccion-titulo { margin: 4px 0 10px; line-height: 20px; }
 .mapa-zona__racks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .mapa-zona__areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 12px; }
 
@@ -440,7 +461,7 @@ p { margin: 0; }
 
 @media (max-width: 1100px) {
   .mapa { grid-template-columns: minmax(0, 1fr); }
-  .mapa__lateral { position: static; order: -1; }
+  .mapa__lateral { position: static; order: -1; margin-top: 0; }
 }
 
 /* ---------- Login ---------- */

@@ -195,7 +195,8 @@ export default function Inventario() {
 
   // Cualquier cambio de búsqueda o filtro vuelve a la primera página
   const cambiarFiltro = (campo, valor) => { setFiltros(f => ({ ...f, [campo]: valor })); setPagina(1) }
-  const hayFiltros = texto || Object.keys(FILTROS_VACIOS).some(k => filtros[k] !== FILTROS_VACIOS[k])
+  const activos = Object.keys(FILTROS_VACIOS).filter(k => filtros[k] !== FILTROS_VACIOS[k]).length
+  const hayFiltros = texto || activos > 0
 
   const moverProducto = async (prod) => {
     const actual = prod.codigo_estanteria || prod.ubicacion_general
@@ -330,8 +331,8 @@ export default function Inventario() {
     }
   ].filter(Boolean)
 
-  const filtrosBarra = (
-    <div className="filtros">
+  const filtrosPanel = (
+    <>
       <select className="select" aria-label="Categoría" value={filtros.categoriaId} onChange={e => cambiarFiltro('categoriaId', e.target.value)}>
         <option value="">Todas las categorías</option>
         {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -352,12 +353,7 @@ export default function Inventario() {
       </select>
       <label className="filtro-check"><input type="checkbox" checked={filtros.sinUbicar} onChange={e => cambiarFiltro('sinUbicar', e.target.checked)} /> Sin ubicar</label>
       <label className="filtro-check"><input type="checkbox" checked={filtros.bajoMinimo} onChange={e => cambiarFiltro('bajoMinimo', e.target.checked)} /> Bajo stock mínimo</label>
-      {hayFiltros && (
-        <button type="button" className="btn btn--secundario btn--sm" onClick={() => { setFiltros(FILTROS_VACIOS); setTexto(''); setPagina(1) }}>
-          <FilterX size={14} aria-hidden="true" /> Limpiar
-        </button>
-      )}
-    </div>
+    </>
   )
 
   return (
@@ -367,7 +363,6 @@ export default function Inventario() {
       <ErrorState mensaje={error} onReintentar={recargar} />
 
       <Card>
-        {filtrosBarra}
         {resumen && (
           <p className="resumen-filtro">
             {formatearNumero(total)} producto{total === 1 ? '' : 's'} · <strong>{formatearNumero(resumen.unidades)}</strong> unidades
@@ -380,6 +375,9 @@ export default function Inventario() {
           filas={datos}
           porPagina={POR_PAGINA}
           busqueda="Buscar por código o descripción…"
+          filtros={filtrosPanel}
+          filtrosActivos={activos}
+          onLimpiarFiltros={() => { setFiltros(FILTROS_VACIOS); setPagina(1) }}
           servidor={{
             total, pagina, onPagina: setPagina,
             orden, onOrden: (o) => { setOrden(o); setPagina(1) },

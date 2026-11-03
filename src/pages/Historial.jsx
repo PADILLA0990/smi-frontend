@@ -61,7 +61,8 @@ export default function Historial() {
     setParametrosUrl(nuevos, { replace: true })
     setPagina(1)
   }
-  const hayFiltros = texto || Object.values(filtros).some(Boolean)
+  const activos = Object.values(filtros).filter(Boolean).length
+  const hayFiltros = texto || activos > 0
 
   return (
     <div>
@@ -70,7 +71,15 @@ export default function Historial() {
       <ErrorState mensaje={error} onReintentar={recargar} />
 
       <Card>
-        <div className="filtros">
+        <DataTable
+          idTabla="historial-v2"
+          columnas={columnas}
+          filas={datos}
+          porPagina={POR_PAGINA}
+          busqueda="Buscar en código, acción, operario o detalle…"
+          filtrosActivos={activos}
+          onLimpiarFiltros={() => { setParametrosUrl({}, { replace: true }); setPagina(1) }}
+          filtros={<>
           <label className="filtro-fecha">Desde <input className="input" type="date" value={filtros.desde} max={filtros.hasta || undefined} onChange={e => cambiarFiltro('desde', e.target.value)} /></label>
           <label className="filtro-fecha">Hasta <input className="input" type="date" value={filtros.hasta} min={filtros.desde || undefined} onChange={e => cambiarFiltro('hasta', e.target.value)} /></label>
           <input className="input filtro-texto" placeholder="Código de producto" aria-label="Código de producto" value={filtros.codigo} onChange={e => cambiarFiltro('codigo', e.target.value)} />
@@ -83,18 +92,7 @@ export default function Historial() {
             <option value="">Todos los operarios</option>
             {opcionesFiltro.operarios.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
-          {hayFiltros && (
-            <button type="button" className="btn btn--secundario btn--sm" onClick={() => { setParametrosUrl({}, { replace: true }); setTexto(''); setPagina(1) }}>
-              <FilterX size={14} aria-hidden="true" /> Limpiar
-            </button>
-          )}
-        </div>
-        <DataTable
-          idTabla="historial-v2"
-          columnas={columnas}
-          filas={datos}
-          porPagina={POR_PAGINA}
-          busqueda="Buscar en código, acción, operario o detalle…"
+          </>}
           servidor={{
             total, pagina, onPagina: setPagina,
             orden: { id: 'fecha', dir: 'desc' }, onOrden: () => {},

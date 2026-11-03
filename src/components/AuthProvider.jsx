@@ -8,7 +8,7 @@ import logoBab from '../assets/logo-bab.png'
 
 // En la pantalla de carga, explica la espera si el servidor está despertando
 function AvisoDespertando() {
-  return useConectando() ? <p style={{ marginTop: 6 }}>El servidor está despertando; puede tardar hasta un minuto.</p> : null
+  return useConectando() ? <p style={{ marginTop: 6 }}>El sistema se está iniciando; puede tardar hasta un minuto.</p> : null
 }
 
 // Restaura la sesión al refrescar (con la cookie) y expone login, logout y cambio de contraseña

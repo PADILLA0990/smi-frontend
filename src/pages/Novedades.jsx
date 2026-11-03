@@ -64,7 +64,8 @@ export default function Novedades() {
     setParametrosUrl(nuevos, { replace: true })
     setPagina(1)
   }
-  const hayFiltros = texto || Object.values(filtros).some(Boolean)
+  const activos = Object.values(filtros).filter(Boolean).length
+  const hayFiltros = texto || activos > 0
 
   // Exporta todas las novedades que cumplen los filtros (no solo la página visible)
   const exportar = async () => {
@@ -99,24 +100,21 @@ export default function Novedades() {
       )}
 
       <Card>
-        <div className="filtros">
-          <label className="filtro-fecha">Desde <input className="input" type="date" value={filtros.desde} max={filtros.hasta || undefined} onChange={e => cambiarFiltro('desde', e.target.value)} /></label>
-          <label className="filtro-fecha">Hasta <input className="input" type="date" value={filtros.hasta} min={filtros.desde || undefined} onChange={e => cambiarFiltro('hasta', e.target.value)} /></label>
-          <select className="select" aria-label="Tipo de novedad" value={filtros.tipo} onChange={e => cambiarFiltro('tipo', e.target.value)}>
-            <option value="">Todos los tipos</option>
-            {Object.entries(TIPOS_NOVEDAD).map(([t, et]) => <option key={t} value={t}>{et}</option>)}
-          </select>
-          <input className="input filtro-texto" placeholder="Código SBO" aria-label="Código SBO" value={filtros.sbo} onChange={e => cambiarFiltro('sbo', e.target.value)} />
-          {hayFiltros && (
-            <button type="button" className="btn btn--secundario btn--sm" onClick={() => { setParametrosUrl({}, { replace: true }); setTexto(''); setPagina(1) }}>
-              <FilterX size={14} aria-hidden="true" /> Limpiar
-            </button>
-          )}
-        </div>
         <DataTable
           idTabla="novedades-v1"
           columnas={columnas}
           filas={datos}
+          filtrosActivos={activos}
+          onLimpiarFiltros={() => { setParametrosUrl({}, { replace: true }); setPagina(1) }}
+          filtros={<>
+            <select className="select" aria-label="Tipo de novedad" value={filtros.tipo} onChange={e => cambiarFiltro('tipo', e.target.value)}>
+              <option value="">Todos los tipos</option>
+              {Object.entries(TIPOS_NOVEDAD).map(([t, et]) => <option key={t} value={t}>{et}</option>)}
+            </select>
+            <input className="input filtro-texto" placeholder="Código SBO" aria-label="Código SBO" value={filtros.sbo} onChange={e => cambiarFiltro('sbo', e.target.value)} />
+            <label className="filtro-fecha">Desde <input className="input" type="date" value={filtros.desde} max={filtros.hasta || undefined} onChange={e => cambiarFiltro('desde', e.target.value)} /></label>
+            <label className="filtro-fecha">Hasta <input className="input" type="date" value={filtros.hasta} min={filtros.desde || undefined} onChange={e => cambiarFiltro('hasta', e.target.value)} /></label>
+          </>}
           porPagina={POR_PAGINA}
           busqueda="Buscar en código, producto, SBO, descripción o usuario…"
           servidor={{

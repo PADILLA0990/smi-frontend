@@ -96,7 +96,7 @@ function BannerConexion() {
   return (
     <div className="banner-conexion" role="status">
       <Loader2 size={16} className="girando" aria-hidden="true" />
-      Conectando con el servidor… si estaba inactivo puede tardar hasta un minuto. Reintentando automáticamente.
+      Iniciando el sistema… si estuvo inactivo puede tardar hasta un minuto. Reintentando automáticamente.
     </div>
   )
 }

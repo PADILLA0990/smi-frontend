@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Search, ArrowUp, ArrowDown, ArrowUpDown, Columns3, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, ArrowUp, ArrowDown, ArrowUpDown, Columns3, ChevronLeft, ChevronRight, SlidersHorizontal, FilterX } from 'lucide-react'
+import Desplegable from './Desplegable'
 import { SkeletonTabla } from './Skeleton'
 import EmptyState from './EmptyState'
 import { formatearNumero } from '../../lib/formato'
@@ -17,10 +18,12 @@ const normalizar = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '
  * filas: array, o null mientras carga.
  * servidor: si se pasa, la búsqueda, el orden y la paginación los resuelve la API y "filas" es solo la página actual:
  *   { total, pagina, onPagina, orden, onOrden, texto, onTexto }
+ * filtros: campos de filtro (JSX) que van en el desplegable "Filtros", junto a la búsqueda.
+ *   filtrosActivos: cuántos hay aplicados (se ve en el botón); onLimpiarFiltros: botón "Limpiar filtros".
  */
 export default function DataTable({
   idTabla, columnas, filas, claveFila = 'id', busqueda = 'Buscar…', porPagina = 15,
-  ordenInicial, vacio = {}, onFilaClick, filaActiva, herramientas, servidor
+  ordenInicial, vacio = {}, onFilaClick, filaActiva, herramientas, servidor, filtros, filtrosActivos = 0, onLimpiarFiltros
 }) {
   const claveStorage = idTabla ? `smi-columnas-${idTabla}` : null
   const [textoLocal, setTextoLocal] = useState('')
@@ -83,31 +86,46 @@ export default function DataTable({
 
   return (
     <div>
-      {(busqueda || herramientas || configurables.length > 0) && (
+      {(busqueda || filtros || herramientas || configurables.length > 1) && (
         <div className="tabla-barra">
-          {busqueda ? (
-            <div className="tabla-buscar">
-              <Search size={16} aria-hidden="true" />
-              <input className="input" type="search" placeholder={busqueda} aria-label={busqueda} value={texto}
-                onChange={e => { setTexto(e.target.value); setPagina(1) }} />
-            </div>
-          ) : <span />}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            {herramientas}
-            {configurables.length > 1 && (
-              <details className="menu-columnas">
-                <summary className="btn btn--secundario btn--sm"><Columns3 size={14} aria-hidden="true" /> Columnas</summary>
-                <div className="menu-columnas__lista">
-                  {configurables.map(c => (
-                    <label key={c.id}>
-                      <input type="checkbox" checked={visibles.includes(c.id)} onChange={() => alternarColumna(c.id)} />
-                      {c.titulo}
-                    </label>
-                  ))}
+          <div className="tabla-barra__grupo tabla-barra__grupo--busqueda">
+            {busqueda && (
+              <div className="tabla-buscar">
+                <Search size={16} aria-hidden="true" />
+                <input className="input" type="search" placeholder={busqueda} aria-label={busqueda} value={texto}
+                  onChange={e => { setTexto(e.target.value); setPagina(1) }} />
+              </div>
+            )}
+            {filtros && (
+              <Desplegable etiqueta="Filtros" icono={SlidersHorizontal} contador={filtrosActivos} className="menu-filtros">
+                <div className="panel-filtros">
+                  {filtros}
+                  {onLimpiarFiltros && filtrosActivos > 0 && (
+                    <button type="button" className="btn btn--secundario btn--sm" onClick={onLimpiarFiltros}>
+                      <FilterX size={14} aria-hidden="true" /> Limpiar filtros
+                    </button>
+                  )}
                 </div>
-              </details>
+              </Desplegable>
             )}
           </div>
+          {(herramientas || configurables.length > 1) && (
+            <div className="tabla-barra__grupo">
+              {herramientas}
+              {configurables.length > 1 && (
+                <Desplegable etiqueta="Columnas" icono={Columns3} alinear="derecha" className="menu-columnas">
+                  <div className="menu-columnas__lista">
+                    {configurables.map(c => (
+                      <label key={c.id}>
+                        <input type="checkbox" checked={visibles.includes(c.id)} onChange={() => alternarColumna(c.id)} />
+                        {c.titulo}
+                      </label>
+                    ))}
+                  </div>
+                </Desplegable>
+              )}
+            </div>
+          )}
         </div>
       )}
 
