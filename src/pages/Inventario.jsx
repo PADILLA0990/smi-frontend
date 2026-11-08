@@ -290,12 +290,16 @@ export default function Inventario() {
     },
     {
       id: 'ubicacion', titulo: 'Ubicación',
-      render: p => (
-        <>
-          <div className="texto-suave texto-sm">{p.ubicacion_general}</div>
-          <strong style={{ color: 'var(--navy-800)' }}>{p.codigo_estanteria || 'Sin asignar'}</strong>
-        </>
-      )
+      // Un producto nuevo guarda su ubicación inicial (p. ej. un hueco Z1-A-2-04) en ubicacion_general,
+      // sin codigo_estanteria: se muestra esa ubicación en vez de "Sin asignar"
+      render: p => (p.codigo_estanteria || p.ubicacion_general === 'Recepción'
+        ? (
+          <>
+            <div className="texto-suave texto-sm">{p.ubicacion_general}</div>
+            <strong style={{ color: 'var(--navy-800)' }}>{p.codigo_estanteria || 'Sin asignar'}</strong>
+          </>
+        )
+        : <strong style={{ color: 'var(--navy-800)' }}>{p.ubicacion_general}</strong>)
     },
     { id: 'ultima_actualizacion', titulo: 'Actualizado', render: p => <span className="texto-sm texto-suave">{formatearFecha(p.ultima_actualizacion)}</span> },
     { id: 'fecha_ingreso', titulo: 'Ingreso', oculta: true, render: p => formatearFecha(p.fecha_ingreso) },

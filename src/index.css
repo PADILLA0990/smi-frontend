@@ -235,7 +235,8 @@ p { margin: 0; }
 }
 .tabla-buscar svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--texto-tenue); pointer-events: none; }
 .tabla-buscar .input { padding-left: 34px; }
-.tabla-scroll { overflow-x: auto; }
+/* relative: los elementos absolutos internos (p. ej. .sr-only) no desbordan la página */
+.tabla-scroll { overflow-x: auto; position: relative; }
 .tabla { width: 100%; border-collapse: collapse; text-align: left; font-size: var(--fs-base); }
 .tabla th {
   background: var(--superficie-suave); color: var(--texto-suave); font-size: var(--fs-sm); font-weight: 700;

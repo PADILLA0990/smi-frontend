@@ -47,6 +47,7 @@ export default function FormSalida({ productos, unidades, opciones, onGuardado }
         }
       })
       avisar(`Salida ${documento.numero} registrada: ${formatearNumero(documento.lineas.reduce((s, l) => s + l.cantidad, 0))} unidades.`)
+      setConfirmando(false)
       setCabecera(CABECERA_VACIA)
       setLineas([lineaVacia()])
       onGuardado()

@@ -80,7 +80,10 @@ function DetalleConteo({ conteo, onCambio, onCerrar }) {
   const puede = usePuede()
   const avisar = useAvisar()
   const confirmar = useConfirmar()
-  const motivos = (useLista('/api/catalogos/motivos?activos=1').datos || []).filter(m => m.tipo === 'AJUSTE')
+  const listaMotivos = useLista('/api/catalogos/motivos?activos=1').datos
+  const motivos = (listaMotivos || []).filter(m => m.tipo === 'AJUSTE')
+  // null mientras carga: el aviso de "no hay motivos" solo se muestra cuando la lista ya llegó vacía
+  const sinMotivos = listaMotivos !== null && motivos.length === 0
   const abierto = conteo.estado === 'ABIERTO'
   const editable = abierto && puede('movimientos:registrar')
   const [contadas, setContadas] = useState(() => Object.fromEntries(conteo.lineas.map(l => [l.id, l.cantidad_contada ?? ''])))
@@ -191,7 +194,7 @@ function DetalleConteo({ conteo, onCambio, onCerrar }) {
 
       {abierto && puede('conciliacion:aprobar') && (
         <div className="conciliacion__aprobar">
-          <Campo etiqueta="Motivo del ajuste" ayuda={motivos.length === 0 ? 'No hay motivos de tipo Ajuste: créelos en Configuración → Motivos.' : undefined}>
+          <Campo etiqueta="Motivo del ajuste" ayuda={sinMotivos ? 'No hay motivos de tipo Ajuste: créelos en Configuración → Motivos.' : undefined}>
             <select className="select" value={motivoId} onChange={e => setMotivoId(e.target.value)}>
               <option value="">Elija…</option>
               {motivos.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}

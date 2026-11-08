@@ -62,6 +62,7 @@ export default function FormIngreso({ productos, unidades, categorias, ubicacion
         }
       })
       avisar(`Ingreso ${documento.numero} registrado: ${formatearNumero(documento.lineas.reduce((s, l) => s + l.cantidad, 0))} unidades.`)
+      setConfirmando(false)
       setCabecera(CABECERA_VACIA)
       setLineas([lineaVacia()])
       onGuardado()
