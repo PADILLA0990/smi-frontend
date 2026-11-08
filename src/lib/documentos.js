@@ -4,6 +4,17 @@
 let siguienteClave = 1
 export const lineaVacia = () => ({ clave: siguienteClave++, codigo: '', producto: null, nuevo: null, unidadId: '', cantidad: '' })
 
+// Agrega un producto nuevo al documento. "Otra condición" (claveOrigen) lo pone justo después de la línea
+// original, que se conserva; si no, ocupa la primera línea vacía o va al final.
+export const agregarLineaNueva = (lineas, claveOrigen, codigo, nuevo) => {
+  const linea = { ...lineaVacia(), codigo, nuevo }
+  if (claveOrigen !== undefined && claveOrigen !== null) {
+    return lineas.flatMap(l => (l.clave === claveOrigen ? [l, linea] : [l]))
+  }
+  const vacia = lineas.find(l => !l.codigo.trim())
+  return vacia ? lineas.map(l => (l === vacia ? { ...l, codigo, producto: null, nuevo } : l)) : [...lineas, linea]
+}
+
 export const ORIGENES = { DONACION: 'Donación', COMPRA: 'Compra' }
 // Tipos de tercero que sirven para cada origen
 export const TERCEROS_DE = { DONACION: ['DONANTE', 'AMBOS'], COMPRA: ['PROVEEDOR', 'AMBOS'] }

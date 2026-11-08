@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert'
-import { lineaVacia, unidadesDe, resumenLineas, problemasLineas, cuerpoLineas, codigoLibre, codigoHermano } from './documentos.js'
+import { lineaVacia, agregarLineaNueva, unidadesDe, resumenLineas, problemasLineas, cuerpoLineas, codigoLibre, codigoHermano } from './documentos.js'
 
 const unidades = [{ id: 4, nombre: 'Caja', factor: 20 }]
 const producto = { codigo_producto: 'ROP-005', cantidad: 30, cantidad_reservada: 5 }
@@ -44,4 +44,24 @@ test('codigoHermano: misma base con el sufijo del nuevo estado', () => {
   assert.equal(codigoHermano('012-TCD-P', 'DANADO'), '012-TCD-X')
   assert.equal(codigoHermano('ROP-001', 'BUENO'), '')
   assert.equal(codigoHermano('001-RCM-B', 'OTRO'), '')
+})
+
+test('Otra condición suma una línea junto a la original y la conserva', () => {
+  const datos = { descripcion: 'Tenis', condicion: 'DANADO' }
+  const original = linea({ codigo: '001-ZTH-P', producto, cantidad: '7' })
+  const otra = linea({ codigo: 'ROP-005', producto, cantidad: '1' })
+  const resultado = agregarLineaNueva([original, otra], original.clave, '001-ZTH-X', datos)
+  assert.deepStrictEqual(resultado.map(l => l.codigo), ['001-ZTH-P', '001-ZTH-X', 'ROP-005'])
+  assert.strictEqual(resultado[0], original)
+  assert.deepStrictEqual([resultado[1].nuevo, resultado[1].cantidad], [datos, ''])
+  assert.notStrictEqual(resultado[1].clave, original.clave)
+})
+
+test('Producto nuevo sin línea de origen: usa la vacía o va al final', () => {
+  const datos = { descripcion: 'Linterna' }
+  const vacia = linea()
+  const conVacia = agregarLineaNueva([linea({ codigo: 'ROP-005' }), vacia], undefined, 'HOG-001', datos)
+  assert.deepStrictEqual(conVacia.map(l => [l.codigo, l.clave === vacia.clave]), [['ROP-005', false], ['HOG-001', true]])
+  const alFinal = agregarLineaNueva([linea({ codigo: 'ROP-005' })], undefined, 'HOG-001', datos)
+  assert.deepStrictEqual(alFinal.map(l => l.codigo), ['ROP-005', 'HOG-001'])
 })

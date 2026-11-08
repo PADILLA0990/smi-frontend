@@ -7,7 +7,7 @@ import Campo from '../../components/ui/Campo'
 import { useAvisar } from '../../lib/dialogos'
 import { useLista } from '../../lib/catalogos'
 import { formatearNumero } from '../../lib/formato'
-import { lineaVacia, resumenLineas, problemasLineas, cuerpoLineas, ORIGENES, TERCEROS_DE } from '../../lib/documentos'
+import { lineaVacia, agregarLineaNueva, resumenLineas, problemasLineas, cuerpoLineas, ORIGENES, TERCEROS_DE } from '../../lib/documentos'
 import LineasDocumento from './LineasDocumento'
 import ModalProductoNuevo from './ModalProductoNuevo'
 import ConfirmarDocumento from './ConfirmarDocumento'
@@ -33,14 +33,8 @@ export default function FormIngreso({ productos, unidades, categorias, ubicacion
   const usados = [...productos.map(p => p.codigo_producto), ...lineas.filter(l => l.nuevo).map(l => l.codigo)]
   const conCodigo = lineas.filter(l => l.codigo.trim())
 
-  // El producto nuevo reemplaza la línea de "otra condición" o una línea vacía; si no, se agrega al final
   const agregarNuevo = (codigo, nuevo) => {
-    setLineas(ls => {
-      const destino = productoNuevo.clave ?? ls.find(l => !l.codigo.trim())?.clave
-      return destino !== undefined
-        ? ls.map(l => (l.clave === destino ? { ...l, codigo, producto: null, nuevo } : l))
-        : [...ls, { ...lineaVacia(), codigo, nuevo }]
-    })
+    setLineas(ls => agregarLineaNueva(ls, productoNuevo.clave, codigo, nuevo))
     setProductoNuevo(null)
   }
 
