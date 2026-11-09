@@ -207,7 +207,7 @@ export default function Inventario() {
       campo: {
         etiqueta: 'Nueva ubicación',
         placeholder: 'Seleccione una ubicación…',
-        opciones: ubicaciones.filter(u => u.codigo !== actual).map(u => ({ valor: u.codigo, etiqueta: [u.codigo, u.nombre || u.zona].filter(Boolean).join(' · ') })),
+        opciones: ubicaciones.filter(u => u.codigo !== actual && !u.lleno).map(u => ({ valor: u.codigo, etiqueta: [u.codigo, u.nombre || u.zona].filter(Boolean).join(' · ') })),
         ayuda: '¿No está la que necesita? Un coordinador la agrega en Configuración → Ubicaciones.'
       }
     })

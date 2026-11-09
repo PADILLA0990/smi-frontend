@@ -413,6 +413,7 @@ p { margin: 0; }
 .mapa-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
 .hueco-muestra { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--borde-campo); background: var(--superficie); display: inline-block; }
 .hueco-muestra--ocupado { background: #dbeafe; border-color: #1e40af; }
+.hueco-muestra--lleno { background: #fee2e2; border-color: #b91c1c; }
 .hueco-muestra--resaltado { background: #fef3c7; border: 2px solid #d97706; }
 
 .mapa { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
@@ -438,6 +439,7 @@ p { margin: 0; }
 .hueco:hover { border-color: var(--navy-700); }
 .hueco:focus-visible { outline: 3px solid var(--foco); outline-offset: 1px; }
 .hueco--ocupado { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+.hueco--lleno { background: #fee2e2; border-color: #b91c1c; color: #7f1d1d; }
 .hueco--resaltado { background: #fef3c7; border: 2px solid #d97706; color: #78350f; }
 .hueco--elegido { outline: 3px solid var(--navy-800); outline-offset: 1px; }
 .hueco__valor { font-weight: 700; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; line-height: 1.1; }
@@ -458,6 +460,7 @@ p { margin: 0; }
 .detalle-hueco__meta { color: var(--texto-suave); font-size: var(--fs-xs); margin-top: 2px; }
 .detalle-hueco__acciones { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 .detalle-hueco__ingresar { width: 100%; justify-content: center; }
+.detalle-hueco__lleno { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: var(--fs-sm); cursor: pointer; }
 .fila-resaltada { background: #fef3c7; }
 
 @media (max-width: 1100px) {

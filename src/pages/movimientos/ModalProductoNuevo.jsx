@@ -146,7 +146,7 @@ export default function ModalProductoNuevo({ base, ubicacionInicial, usados, cat
         <Campo etiqueta="Ubicación inicial">
           <select className="select" value={form.ubicacion_general} onChange={e => cambiar({ ubicacion_general: e.target.value })} required>
             {!ubicaciones.some(u => u.codigo === form.ubicacion_general) && <option value={form.ubicacion_general}>{form.ubicacion_general}</option>}
-            {ubicaciones.map(u => <option key={u.id} value={u.codigo}>{u.codigo}{u.nombre ? ` · ${u.nombre}` : ''}</option>)}
+            {ubicaciones.filter(u => !u.lleno || u.codigo === form.ubicacion_general).map(u => <option key={u.id} value={u.codigo}>{u.codigo}{u.nombre ? ` · ${u.nombre}` : ''}</option>)}
           </select>
         </Campo>
       </form>

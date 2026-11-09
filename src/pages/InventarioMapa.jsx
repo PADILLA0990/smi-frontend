@@ -45,11 +45,11 @@ function Rack({ rack, seleccion, resaltados, onElegir, destacado }) {
             <span className="rack__nivel" role="rowheader">Nivel {fila[0].nivel}</span>
             {fila.map(c => {
               const n = c.productos.length
-              const clases = ['hueco', n ? 'hueco--ocupado' : '', seleccion === c.codigo ? 'hueco--elegido' : '', resaltados.has(c.codigo) ? 'hueco--resaltado' : ''].join(' ')
+              const clases = ['hueco', n ? 'hueco--ocupado' : '', c.lleno ? 'hueco--lleno' : '', seleccion === c.codigo ? 'hueco--elegido' : '', resaltados.has(c.codigo) ? 'hueco--resaltado' : ''].join(' ')
               return (
                 <button key={c.codigo} type="button" role="gridcell" className={clases} onClick={() => onElegir(c.codigo)}
                   aria-pressed={seleccion === c.codigo}
-                  title={`${c.codigo}: ${n ? `${formatearNumero(n)} producto(s), ${formatearNumero(c.unidades)} unidades` : 'vacío'}`}>
+                  title={`${c.codigo}: ${n ? `${formatearNumero(n)} producto(s), ${formatearNumero(c.unidades)} unidades` : 'vacío'}${c.lleno ? ' · marcado como lleno' : ''}`}>
                   <span className="hueco__valor">{n ? formatearNumero(c.unidades) : '—'}</span>
                   <span className="hueco__numero">{String(c.hueco).padStart(2, '0')}</span>
                 </button>
@@ -63,14 +63,23 @@ function Rack({ rack, seleccion, resaltados, onElegir, destacado }) {
 }
 
 // Panel derecho: qué hay en la ubicación elegida y qué se puede hacer
-function Detalle({ lugar, puede, onReubicar, onKardex, onIngresar }) {
+function Detalle({ lugar, puede, onReubicar, onKardex, onIngresar, onLleno, marcando }) {
   if (!lugar) {
     return <EmptyState icono={MapIcon} titulo="Elija un hueco o un área" mensaje="Haga clic en una casilla de un rack para ver qué contiene." />
   }
+  const esHueco = lugar.nivel !== undefined
   return (
     <div className="detalle-hueco">
       <div className="detalle-hueco__codigo">{lugar.codigo}</div>
       <p className="texto-suave">{lugar.descripcion}</p>
+      {esHueco && (puede('productos:reubicar')
+        ? (
+          <label className="detalle-hueco__lleno">
+            <input type="checkbox" checked={lugar.lleno} disabled={marcando} onChange={e => onLleno(lugar.codigo, e.target.checked)} />
+            <span><b>Lleno</b> · no recibe ingresos ni reubicaciones</span>
+          </label>
+        )
+        : lugar.lleno && <Badge tono="rojo">Lleno</Badge>)}
       {lugar.productos.length === 0
         ? <p className="detalle-hueco__vacio">Vacío.</p>
         : (
@@ -96,7 +105,7 @@ function Detalle({ lugar, puede, onReubicar, onKardex, onIngresar }) {
           </ul>
         )}
       {puede('movimientos:registrar') && (
-        <button type="button" className="btn btn--primario btn--sm detalle-hueco__ingresar" onClick={() => onIngresar(lugar.codigo)}>
+        <button type="button" className="btn btn--primario btn--sm detalle-hueco__ingresar" disabled={lugar.lleno} title={lugar.lleno ? 'Desmarque "Lleno" para ingresar aquí' : undefined} onClick={() => onIngresar(lugar.codigo)}>
           <PackagePlus size={14} aria-hidden="true" /> Ingresar aquí
         </button>
       )}
@@ -118,6 +127,7 @@ export default function InventarioMapa() {
   const [busqueda, setBusqueda] = useState(parametrosUrl.get('q') || '')
   const [kardex, setKardex] = useState(null)
   const [rackDestacado, setRackDestacado] = useState(null)
+  const [marcando, setMarcando] = useState(false)
   const seleccion = parametrosUrl.get('ubicacion') || ''
 
   const cargar = useCallback(() => pedirJSON('/api/mapa')
@@ -160,7 +170,7 @@ export default function InventarioMapa() {
       campo: {
         etiqueta: 'Nueva ubicación',
         placeholder: 'Seleccione una ubicación…',
-        opciones: ubicaciones.filter(u => u.codigo.toLowerCase() !== prod.ubicacion.toLowerCase()).map(u => ({ valor: u.codigo, etiqueta: [u.codigo, u.nombre].filter(Boolean).join(' · ') }))
+        opciones: ubicaciones.filter(u => u.codigo.toLowerCase() !== prod.ubicacion.toLowerCase() && !lugares[u.codigo]?.lleno).map(u => ({ valor: u.codigo, etiqueta: [u.codigo, u.nombre].filter(Boolean).join(' · ') }))
       }
     })
     if (!nueva) return
@@ -171,6 +181,19 @@ export default function InventarioMapa() {
       cargar()
     } catch (err) {
       avisar(err.message, 'error')
+    }
+  }
+
+  const marcarLleno = async (codigo, lleno) => {
+    setMarcando(true)
+    try {
+      await pedirJSON(`/api/mapa/huecos/${encodeURIComponent(codigo)}/lleno`, { method: 'PATCH', body: { lleno } })
+      await cargar()
+      avisar(lleno ? `${codigo} marcado como lleno.` : `${codigo} vuelve a recibir producto.`)
+    } catch (err) {
+      avisar(err.message, 'error')
+    } finally {
+      setMarcando(false)
     }
   }
 
@@ -213,6 +236,7 @@ export default function InventarioMapa() {
         <span className="mapa-leyenda" aria-hidden="true">
           <span><i className="hueco-muestra" /> Vacío</span>
           <span><i className="hueco-muestra hueco-muestra--ocupado" /> Con producto</span>
+          <span><i className="hueco-muestra hueco-muestra--lleno" /> Lleno</span>
           {q.length >= 2 && <span><i className="hueco-muestra hueco-muestra--resaltado" /> Coincide</span>}
         </span>
       </div>
@@ -252,7 +276,7 @@ export default function InventarioMapa() {
 
         <aside className="mapa__lateral">
           <Card titulo="Detalle de la ubicación" icono={PackageSearch} className="mapa__detalle">
-            {mapa ? <Detalle lugar={lugares[seleccion]} puede={puede} onReubicar={reubicar} onKardex={setKardex} onIngresar={ingresarAqui} /> : <Skeleton alto={120} />}
+            {mapa ? <Detalle lugar={lugares[seleccion]} puede={puede} onReubicar={reubicar} onKardex={setKardex} onIngresar={ingresarAqui} onLleno={marcarLleno} marcando={marcando} /> : <Skeleton alto={120} />}
           </Card>
 
           <Card titulo="Fuera de estanterías" icono={MapPinOff}
